@@ -1,7 +1,7 @@
 export type Card = {id:string;name:string;url:string;idBoard?:string;idList?:string;idMembers?:string[];closed?:boolean};
 export type Entry = {id:string;cardId:string;seconds:number;date:string;note:string;kind:'manual'|'session'};
-export type Session = {id:string;card:Card;duration:number;remaining:number;end:number|null;review?:boolean};
-export type Ledger = {commentId?:string;text?:string;creating?:boolean;error?:string};
+export type Session = {id:string;card:Card;duration:number;remaining:number;end:number|null;startedAt?:string;review?:boolean};
+export type Ledger = {commentId?:string;text?:string;creating?:boolean;pendingText?:string;error?:string};
 export type State = {cardStatus?:CardStatus;cardSort?:CardSort;connected?:boolean;member?:{id:string;name:string};cards:Card[];boards:{id:string;name:string;closed?:boolean}[];lists:{id:string;name:string;idBoard?:string;closed?:boolean}[];entries:Entry[];session?:Session;ledgers:Record<string,Ledger>;favorites:string[];minutes:number;notifications:boolean};
 export const initial = ():State => ({cardStatus:'active',cardSort:'default',cards:[],boards:[],lists:[],entries:[],ledgers:{},favorites:[],minutes:25,notifications:true});
 export const remaining = (s:Session,now=Date.now()) => s.end === null ? s.remaining : Math.max(0,Math.ceil((s.end-now)/1000));
@@ -12,7 +12,9 @@ export function addEntry(state:State,entry:Entry){validateSeconds(entry.seconds)
 export function comment(state:State,cardId:string){
  const entries=state.entries.filter(e=>e.cardId===cardId);const total=entries.reduce((s,e)=>s+e.seconds,0);
  const lines=entries.slice(-60).reverse().map(e=>`• ${new Date(e.date).toLocaleString('es-AR')} · ${format(e.seconds)} · ${e.kind==='session'?'Sesión':'Carga manual'}${e.note ? ` · ${e.note.replace(/[\r\n]/g,' ').replace(/[*_`<>]/g,'')}`:''}`);
- return `**Trello Focus**\n\n## Total acumulado: ${format(total)}\n\n${lines.join('\n')}\n\nRegistro administrado por Trello Focus. Historial completo disponible en la extensión.\n\nTF:v1:${state.member?.id}:${cardId}`;
+ const session=state.session?.card.id===cardId?state.session:undefined;
+ const sessionText=session?`\n\n**Sesión ${session.review?'pendiente de confirmar':session.end?'en curso':'en pausa'}** · ${format(session.duration)} previstos. El tiempo se suma al terminar.${session.startedAt?` Inicio: ${new Date(session.startedAt).toLocaleString('es-AR')}`:''}`:' ';
+ return `**Trello Focus**\n\n## Total acumulado: ${format(total)}${sessionText}\n\n${lines.join('\n')}\n\nRegistro administrado por Trello Focus. Historial completo disponible en la extensión.\n\nTF:v1:${state.member?.id}:${cardId}`;
 }
 
 export type CardStatus = 'active'|'archived'|'all';
@@ -41,4 +43,14 @@ export function sortCards(cards:Card[],entries:Entry[],order:CardSort='default')
   if(dateB===undefined)return -1;
   return (dateA-dateB)*(order==='recent'?-1:1);
  });
+}
+
+export function cardPanelState(state:State,cardId:string){
+ const card=state.cards.find(c=>c.id===cardId||c.url.split('/')[4]===cardId);
+ const session=state.session;
+ const same=!!session&&(session.card.id===cardId||session.card.url.split('/')[4]===cardId);
+ return {minutes:state.minutes,connected:!!state.connected,active:!!session,sameCard:same,
+  session:same?session:undefined,otherCard:session&&!same?session.card.name:undefined,
+  error:card?state.ledgers[card.id]?.error:undefined,
+  total:card?state.entries.filter(e=>e.cardId===card.id).reduce((n,e)=>n+e.seconds,0):0};
 }

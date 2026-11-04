@@ -1,0 +1,12 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Prueba del panel flotante</title><body style="background:#eef3eb;font-family:system-ui;padding:30px"><h1>Prueba local de Trello Focus</h1><p>Simulación sin conexión a Trello. Usar iniciar, pausar, continuar y terminar.</p><div id="overlay-contents" role="dialog" aria-label="Tarjeta de prueba"></div><script>
+history.replaceState(null,'','/c/Test1234/prueba');
+const data={minutes:25,connected:true,active:false,sameCard:false,total:0};
+window.chrome={runtime:{sendMessage:async message=>{
+ if(message.type==='START'){data.active=true;data.sameCard=true;data.session={id:'prueba',card:{id:'Test1234',name:'Tarjeta local',url:''},duration:1500,remaining:1500,end:Date.now()+1500000};}
+ if(message.type==='PAUSE'){data.session.remaining=Math.ceil((data.session.end-Date.now())/1000);data.session.end=null;}
+ if(message.type==='RESUME')data.session.end=Date.now()+data.session.remaining*1000;
+ if(message.type==='FINISH'||message.type==='CANCEL'){if(message.type==='FINISH')data.total+=1500-(data.session.end?Math.ceil((data.session.end-Date.now())/1000):data.session.remaining);data.active=false;data.sameCard=false;delete data.session;}
+ if(message.type==='ADD')data.total+=message.seconds;
+ return {data:structuredClone(data)};
+}}};
+</script><script type="module" src="/src/content.ts"></script></body></html>

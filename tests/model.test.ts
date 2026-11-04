@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initial,remaining,elapsed,addEntry,comment,validateSeconds,matchesStatus,sortCards} from '../src/model.ts';
+import {initial,remaining,elapsed,addEntry,comment,validateSeconds,matchesStatus,sortCards,cardPanelState} from '../src/model.ts';
 test('El temporizador conserva el tiempo al pausar y limita el vencimiento',()=>{
  const s={id:'s',card:{id:'c',name:'Tarjeta',url:''},duration:1500,remaining:1500,end:100000};
  assert.equal(remaining(s,90000),10);assert.equal(elapsed(s,90000),1490);assert.equal(remaining(s,110000),0);
@@ -38,4 +38,15 @@ test('Ordena por tiempo acumulado y último registro sin modificar tarjetas ni h
  assert.deepEqual(ids('oldest'),['b','d','a','c']);
  assert.deepEqual(cards.map(c=>c.id),['a','b','c','d']);assert.equal(entries.length,4);
  assert.deepEqual(sortCards(cards.filter(c=>c.id!=='a'),entries,'recent').map(c=>c.id),['d','b','c']);
+});
+
+test('El panel identifica su sesión y no hereda errores de otra tarjeta',()=>{
+ const state=initial();const card={id:'c',name:'Tarjeta',url:'https://trello.com/c/AbCd1234/prueba'};
+ state.cards=[card];state.ledgers.other={error:'HTTP 404'};
+ state.session={id:'sesion',card,duration:1500,remaining:1500,end:Date.now()+1500000};
+ const panel=cardPanelState(state,'AbCd1234');assert.equal(panel.sameCard,true);assert.equal(panel.error,undefined);assert.equal(panel.session?.duration,1500);
+ assert.equal(cardPanelState(state,'otra').sameCard,false);
+ assert.match(comment(state,'c'),/Sesión en curso/);assert.match(comment(state,'c'),/Total acumulado: 0 min/);
+ state.session.end=null;assert.match(comment(state,'c'),/Sesión en pausa/);
+ delete state.session;assert.doesNotMatch(comment(state,'c'),/Sesión en/);
 });

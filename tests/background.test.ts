@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initial} from '../src/model.ts';
 test('Flujo real del worker compilado: comentario único, reintentos, sesión y permisos',async()=>{
- const db:any={};let listener:any;const alarmListeners:any[]=[];let requests:any[]=[];let comments:any[]=[];let failPut=false;let failPost=false;
+ const db:any={};let listener:any;const alarmListeners:any[]=[];let requests:any[]=[];let comments:any[]=[];let failPut=false;let failPost=false;let rejectPost=false;
  const member='a'.repeat(24),cardId='b'.repeat(24),card={id:cardId,name:'Tarjeta de prueba',url:'https://trello.com/c/AbCd1234/prueba',idMembers:[member]};
  (globalThis as any).chrome={storage:{local:{get:async(key:string)=>structuredClone({[key]:db[key]}),set:async(data:object)=>Object.assign(db,structuredClone(data)),remove:async(key:string)=>{delete db[key];},setAccessLevel:async()=>{}}},runtime:{id:'extension',getURL:(p:string)=>`chrome-extension://extension/${p}`,onMessage:{addListener:(fn:any)=>listener=fn},onStartup:{addListener:()=>{}}},alarms:{clear:async()=>{},create:async()=>{},onAlarm:{addListener:(fn:any)=>alarmListeners.push(fn)}},action:{setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}},notifications:{create:()=>{}},tabs:{create:async()=>{}}};
  (globalThis as any).fetch=async(url:string,options:any)=>{
@@ -15,6 +15,7 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
   if(path.startsWith(`cards/${cardId}?`)||path.startsWith('cards/AbCd1234?'))return Response.json(card);
   if(path.includes('filter=commentCard'))return Response.json(comments);
   if(path.startsWith('actions/'))return Response.json(comments.find(c=>c.id===path.split('/')[1]));
+  if(options.method==='POST'&&rejectPost)return new Response('',{status:404});
   if(options.method==='POST'){const c={id:'comentario',idMemberCreator:member,data:{text:payload.text}};comments.push(c);if(failPost)throw Error('Respuesta perdida');return Response.json(c);}
   if(options.method==='PUT'){if(failPut)throw Error('Sin conexión');comments[0].data.text=payload.text;return Response.json(comments[0]);}
   throw Error(`Petición no simulada: ${path}`);
@@ -46,5 +47,14 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  for(const order of ['time-desc','time-asc','recent','oldest','default']){await send('SORT',{order});assert.equal((await send('STATE')).data.cardSort,order);}
  await send('SORT',{order:'recent'});await send('REFRESH');assert.equal(db.state.cardSort,'recent');assert.deepEqual(db.state.entries,previousEntries);
  assert.match((await send('SORT',{order:'invalid'})).error,/inválido/);assert.equal(db.state.cardSort,'recent');
+ db.state={...initial(),connected:true,member:{id:member,name:'Persona'}};comments=[];rejectPost=true;
+ await send('START',{cardId});assert.ok(db.state.session);assert.equal(db.state.entries.length,0);assert.match(db.state.ledgers[cardId].error,/crear el comentario.*404/);assert.equal(db.state.ledgers[cardId].creating,false);
+ rejectPost=false;await send('SYNC');assert.equal(comments.length,1);assert.match(comments[0].data.text,/Sesión en curso/);assert.equal(db.state.ledgers[cardId].error,undefined);
+ const source='https://trello.com/c/AbCd1234/prueba';
+ const panel=await send('CARD_STATE',{cardId:'AbCd1234'},source);assert.equal(panel.data.sameCard,true);assert.ok(panel.data.session);assert.equal(panel.data.entries,undefined);
+ await send('PAUSE',{cardId:'AbCd1234'},source);assert.equal(db.state.session.end,null);assert.match(comments[0].data.text,/Sesión en pausa/);
+ await send('RESUME',{cardId:'AbCd1234'},source);assert.ok(db.state.session.end);assert.match(comments[0].data.text,/Sesión en curso/);
+ assert.match((await send('CANCEL',{cardId:'OtRa1234'},'https://trello.com/c/OtRa1234/prueba')).error,/otra tarjeta/);
+ await send('CANCEL',{cardId:'AbCd1234'},source);assert.equal(comments.length,1);assert.doesNotMatch(comments[0].data.text,/Sesión en/);
  await send('DISCONNECT');assert.equal(db.credentials,undefined);assert.equal(db.state.connected,false);
 });
