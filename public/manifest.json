@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Trello Focus",
+  "version": "0.1.0",
+  "description": "Sumá tiempo y sesiones de concentración a tus tarjetas con un único comentario por tarjeta.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://api.trello.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "index.html?view=popup",
+    "default_title": "Trello Focus"
+  },
+  "options_page": "index.html?view=settings",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://trello.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
+}
