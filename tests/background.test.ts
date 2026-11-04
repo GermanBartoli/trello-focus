@@ -27,6 +27,14 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  assert.ok(!(await send('CONNECT',{credentials:{key:'a'.repeat(32),token:'token-prueba'}})).error);
  await send('ADD',{cardId,seconds:600,id:'uno'});await send('ADD',{cardId,seconds:900,id:'dos'});await send('ADD',{cardId,seconds:900,id:'dos'});
  assert.equal(comments.length,1);assert.match(comments[0].data.text,/25 min/);assert.equal(db.state.entries.length,2);
+
+ const originalDate=db.state.entries[0].date;
+ await send('EDIT_ENTRY',{id:'uno',seconds:125,note:'Tiempo corregido'});assert.equal(db.state.entries[0].seconds,125);assert.equal(db.state.entries[0].date,originalDate);assert.match(comments[0].data.text,/Tiempo corregido/);assert.equal(comments.length,1);
+ assert.match((await send('EDIT_ENTRY',{id:'uno',seconds:0,note:''})).error,/tiempo/);assert.equal(db.state.entries[0].seconds,125);
+ assert.match((await send('DELETE_ENTRY',{id:'inexistente'})).error,/no existe/);
+ assert.match((await send('DELETE_ENTRY',{id:'uno'},'https://trello.com/c/AbCd1234/test')).error,/permitida/);
+ await send('DELETE_ENTRY',{id:'uno'});assert.equal(db.state.entries.length,1);assert.doesNotMatch(comments[0].data.text,/Tiempo corregido/);assert.match(comments[0].data.text,/15 min/);
+ await send('ADD',{cardId,seconds:600,id:'uno'});
  failPut=true;await send('ADD',{cardId,seconds:60,id:'tres'});assert.equal(db.state.entries.length,3);assert.ok(db.state.ledgers[cardId].error);
  failPut=false;await send('SYNC');assert.match(comments[0].data.text,/26 min/);assert.equal(db.state.ledgers[cardId].error,undefined);
  comments[0].data.text='Cambio manual';const puts=requests.filter(r=>r.method==='PUT').length;await send('ADD',{cardId,seconds:60,id:'cuatro'});assert.equal(requests.filter(r=>r.method==='PUT').length,puts);assert.match(db.state.ledgers[cardId].error,/cambió/);

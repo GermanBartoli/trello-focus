@@ -57,6 +57,16 @@ async function handle(message:any,content:boolean){
  if(content&&['PAUSE','RESUME','FINISH','CANCEL'].includes(message.type)&&!cardPanelState(state,message.cardId).sameCard)throw Error('La sesión activa pertenece a otra tarjeta.');
  switch(message.type){
  case 'STATE':return state;
+ case 'EDIT_ENTRY':case 'DELETE_ENTRY':{
+  const entry=state.entries.find(e=>e.id===message.id);
+  if(!entry)throw Error('El registro ya no existe. Actualizá el panel.');
+  if(message.type==='EDIT_ENTRY'){
+   const seconds=validateSeconds(message.seconds);
+   if(typeof message.note!=='string'||message.note.length>200)throw Error('La nota admite hasta 200 caracteres.');
+   entry.seconds=seconds;entry.note=message.note.trim();
+  }else state.entries=state.entries.filter(e=>e.id!==entry.id);
+  await save(state);await sync(state,entry.cardId);return state;
+ }
  case 'DISCARD_SYNC':for(const ledger of Object.values(state.ledgers)){if(ledger.error){ledger.discarded=true;delete ledger.error;}}await save(state);return state;
  case 'SORT':if(!['default','time-desc','time-asc','recent','oldest'].includes(message.order))throw Error('Orden de tarjetas inválido.');state.cardSort=message.order;await save(state);return state;
  case 'FILTER':if(!['active','archived','all'].includes(message.status))throw Error('Filtro de tarjetas inválido.');state.cardStatus=message.status;await save(state);return state;
