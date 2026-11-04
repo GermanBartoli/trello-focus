@@ -1,4 +1,5 @@
-<!doctype html><html lang="es"><meta charset="utf-8"><title>Prueba del panel flotante</title><body style="background:#eef3eb;font-family:system-ui;padding:30px"><h1>Prueba local de Trello Focus</h1><p>Simulación sin conexión a Trello. Usar iniciar, pausar, continuar y terminar.</p><div id="overlay-contents" role="dialog" aria-label="Tarjeta de prueba"></div><script>
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Prueba del panel flotante</title><body style="background:#eef3eb;font-family:system-ui;padding:30px"><h1>Prueba local de Trello Focus</h1><p>Simulación sin conexión a Trello. Usar iniciar, pausar, continuar y terminar.</p><div id="overlay-contents" role="dialog" aria-label="Tarjeta de prueba"></div><p>Atajos recibidos fuera del panel: <b id="keys">0</b></p><input aria-label="Campo externo" placeholder="Campo externo de prueba"><script>
+let keys=0;for(const type of ['keydown','keypress','keyup'])window.addEventListener(type,()=>{document.getElementById('keys').textContent=String(++keys);},true);
 history.replaceState(null,'','/c/Test1234/prueba');
 const data={minutes:25,connected:true,active:false,sameCard:false,total:0};
 window.chrome={runtime:{sendMessage:async message=>{
