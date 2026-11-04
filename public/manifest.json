@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Trello Focus",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Sumá tiempo y sesiones de concentración a tus tarjetas con un único comentario por tarjeta.",
   "permissions": [
     "storage",

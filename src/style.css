@@ -4,3 +4,5 @@
 .connection-state{padding:16px 18px;background:#edf5e7;border:1px solid #c7ddbd;border-radius:12px;margin-top:24px}.connection-state strong{color:#315c3d}.connection-state p{margin:7px 0 0;font-size:12px}.saved-credentials{display:grid;gap:15px;max-width:510px;margin-top:18px}.saved-credentials label{display:grid;gap:8px;font-size:12px}.saved-credentials input{background:#f2f5ee;color:#6c8263}
 
 .text-link{border:0;background:transparent;padding:0;text-align:left;font-weight:650;color:inherit}.text-link:hover{text-decoration:underline}.duration-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.duration-fields input{min-width:0;width:100%}.history article{flex-wrap:wrap}.history article>div{min-width:180px}.history .actions button{padding:8px 12px}
+
+.card-detail{background:#fff;border:1px solid #e0e7dc;border-radius:18px;padding:28px;margin-bottom:24px}.card-detail h2{line-height:1.5}.detail-total{font-size:32px}.card-detail .actions{margin-top:20px}
