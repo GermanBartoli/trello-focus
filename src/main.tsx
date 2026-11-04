@@ -6,8 +6,13 @@ import './style.css';
 import {EntryHistory} from './EntryHistory';
 const params=new URLSearchParams(location.search);const popup=params.get('view')==='popup';
 function readRoute(){const p=new URLSearchParams(location.search);const view=p.get('view');return {view:['settings','history','card'].includes(view??'')?view!:'cards',cardId:p.get('card')??''};}
+function useSavedFilter<T extends string|boolean>(key:string,fallback:T){
+ const [value,setValue]=useState<T>(()=>{try{const saved=JSON.parse(localStorage.getItem('trello-focus-filter-'+key)??'null');return typeof saved===typeof fallback?saved:fallback;}catch{return fallback;}});
+ function update(next:T){setValue(next);try{localStorage.setItem('trello-focus-filter-'+key,JSON.stringify(next));}catch{/* El filtro sigue disponible aunque el almacenamiento esté lleno. */}}
+ return [value,update] as const;
+}
 function App(){
- const [state,setState]=useState<State>(initial);const [route,setRoute]=useState(readRoute);const {view,cardId}=route;const [error,setError]=useState('');const [busy,setBusy]=useState(false);const [editingCredentials,setEditingCredentials]=useState(false);const [query,setQuery]=useState('');const [board,setBoard]=useState('');const [list,setList]=useState('');const status:CardStatus=state.cardStatus??'active';const [onlyMine,setOnlyMine]=useState(true);const [favorite,setFavorite]=useState(false);const [manual,setManual]=useState<Card>();const [now,setNow]=useState(Date.now());
+ const [state,setState]=useState<State>(initial);const [route,setRoute]=useState(readRoute);const {view,cardId}=route;const [error,setError]=useState('');const [busy,setBusy]=useState(false);const [editingCredentials,setEditingCredentials]=useState(false);const [query,setQuery]=useSavedFilter<string>('query','');const [board,setBoard]=useSavedFilter<string>('board','');const [list,setList]=useSavedFilter<string>('list','');const status:CardStatus=state.cardStatus??'active';const [onlyMine,setOnlyMine]=useSavedFilter<boolean>('onlyMine',true);const [favorite,setFavorite]=useSavedFilter<boolean>('favorite',false);const [manual,setManual]=useState<Card>();const [now,setNow]=useState(Date.now());
 
  function navigate(view:string,cardId=''){const url=new URL(location.href);url.searchParams.set('view',view);if(cardId)url.searchParams.set('card',cardId);else url.searchParams.delete('card');if(url.href!==location.href)history.pushState(null,'',url);setRoute(readRoute());setManual(undefined);setError('');window.scrollTo(0,0);}
  useEffect(()=>{const onPop=()=>{setRoute(readRoute());setManual(undefined);setError('');};window.addEventListener('popstate',onPop);return()=>window.removeEventListener('popstate',onPop);},[]);
