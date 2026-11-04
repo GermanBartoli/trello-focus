@@ -1,5 +1,5 @@
 import {remaining,format,type Session} from './model';
-type PanelState={minutes:number;connected:boolean;active:boolean;sameCard:boolean;session?:Session;otherCard?:string;error?:string;total:number};
+type PanelState={minutes:number;connected:boolean;active:boolean;sameCard:boolean;session?:Session;otherCard?:string;error?:string;syncDiscarded?:boolean;total:number};
 let current='';let host:HTMLDivElement|undefined;let cleanup=()=>{};
 function mount(){
  const id=location.pathname.match(/^\/c\/([a-zA-Z0-9]+)/)?.[1]??'';
@@ -14,7 +14,7 @@ function mount(){
  const get=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector)!;
  let data:PanelState|undefined;let busy=false;let polling=false;let alive=true;
  function render(){
-  if(!data)return;
+  if(!data){root.querySelectorAll<HTMLButtonElement>('button').forEach(b=>b.disabled=!['open','close'].includes(b.id));return;}
   const s=data.session;const own=data.sameCard&&!!s;
   get('#summary').textContent=own?(s.review?'Sesión pendiente de confirmar':s.end?'Sesión en curso':'Sesión en pausa'):data.otherCard?`Sesión activa en otra tarjeta: ${data.otherCard}`:'Un momento de foco para esta tarjeta.';
   const clock=get('#clock');clock.hidden=!own;
@@ -24,16 +24,16 @@ function mount(){
   get('#pause').hidden=!!s?.review;get('#pause').textContent=s?.end?'Pausar':'Continuar';
   get('#finish').textContent=s?.review?'Confirmar tiempo':'Terminar y guardar';
   get('#total').textContent=`Tiempo registrado: ${format(data.total)}`;
-  get('#warning').textContent=data.error?`Sincronización pendiente en esta tarjeta: ${data.error}`:'';
+  get('#warning').textContent=data.syncDiscarded?'Sincronización descartada. El tiempo permanece guardado localmente.':data.error?`Sincronización pendiente en esta tarjeta: ${data.error}`:'';
   root.querySelectorAll<HTMLButtonElement>('button').forEach(b=>b.disabled=busy);
   start.disabled=busy||data.active||!data.connected;
   if(!data.connected)get('#status').textContent='Abrí el panel para conectar tu cuenta de Trello.';
  }
- async function send(message:object){const result=await chrome.runtime.sendMessage(message);if(result.error)throw Error(result.error);return result.data as PanelState;}
- async function poll(){if(polling||busy||!alive)return;polling=true;try{const next=await send({type:'CARD_STATE',cardId:id});if(alive){data=next;render();}}catch(e){if(alive)get('#status').textContent=e instanceof Error?e.message:'Recargá Trello para reconectar la extensión.';}finally{polling=false;}}
+ async function send(message:object){const result=await Promise.race([chrome.runtime.sendMessage(message),new Promise<never>((_,reject)=>setTimeout(()=>reject(Error('La extensión no respondió a tiempo. Esperá antes de repetir la acción.')),25000))]);if(result.error)throw Error(result.error);return result.data as PanelState;}
+ async function poll(){if(polling||busy||!alive)return;polling=true;try{const next=await send({type:'CARD_STATE',cardId:id});if(alive){data=next;if(get('#summary').textContent==='No se pudo consultar la sesión')get('#status').textContent='';render();}}catch(e){if(alive){get('#summary').textContent='No se pudo consultar la sesión';get('#status').textContent=e instanceof Error?e.message:'Recargá Trello para reconectar la extensión.';}}finally{polling=false;}}
  async function act(type:string,fields:object={}){
   if(busy)return;busy=true;get('#status').textContent='Procesando…';render();
-  try{data=await send({type,cardId:id,...fields});get('#status').textContent=type==='START'?'Sesión iniciada. El tiempo se suma al terminar.':type==='PAUSE'?'Sesión pausada.':type==='RESUME'?'Sesión reanudada.':type==='CANCEL'?'Sesión descartada.':data.error?'Tiempo guardado localmente.':'Registro sincronizado con Trello.';}
+  try{data=await send({type,cardId:id,...fields});get('#status').textContent=type==='START'?'Sesión iniciada. El tiempo se suma al terminar.':type==='PAUSE'?'Sesión pausada.':type==='RESUME'?'Sesión reanudada.':type==='CANCEL'?'Sesión descartada.':data.error||data.syncDiscarded?'Tiempo guardado localmente.':'Registro sincronizado con Trello.';}
   catch(e){get('#status').textContent=e instanceof Error?e.message:'No se pudo completar.';}
   finally{busy=false;render();}
  }
@@ -45,6 +45,6 @@ function mount(){
  get('#open').addEventListener('click',()=>void send({type:'OPEN'}).catch(e=>{get('#status').textContent=e.message;}));
  get('#close').addEventListener('click',()=>{panel.style.display='none';});
  const ticker=setInterval(render,1000);const refresh=setInterval(()=>void poll(),3000);
- cleanup=()=>{alive=false;clearInterval(ticker);clearInterval(refresh);};void poll();
+ cleanup=()=>{alive=false;clearInterval(ticker);clearInterval(refresh);};render();void poll();
 }
 setInterval(mount,1000);mount();

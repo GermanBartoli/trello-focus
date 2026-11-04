@@ -1,0 +1,4 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Prueba de configuración</title><body><div id="root"></div><script>
+const state={credentialsStored:true,connected:true,member:{id:'prueba',name:'Usuario de prueba'},cards:[{id:'tarjeta',name:'Tarjeta de prueba'}],boards:[],lists:[],entries:[],ledgers:{tarjeta:{error:'No se pudo leer el comentario guardado: HTTP 404'}},favorites:[],minutes:25,notifications:true};
+window.chrome={runtime:{id:'prueba',getManifest:()=>({version:'prueba'}),sendMessage:async m=>{if(m.type==='DISCARD_SYNC'){state.ledgers.tarjeta={discarded:true};}return {data:structuredClone(state)};}},storage:{onChanged:{addListener:()=>{},removeListener:()=>{}}}};
+</script><script type="module" src="/src/main.tsx"></script></body></html>

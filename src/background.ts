@@ -3,7 +3,7 @@ class TrelloError extends Error { constructor(public status:number){super(`Trell
 type Credentials={key:string;token:string};
 let queue:Promise<unknown>=Promise.resolve();
 const serial=<T>(fn:()=>Promise<T>)=>{const task=queue.then(fn,fn);queue=task.catch(()=>{});return task;};
-const load=async():Promise<State> => (await chrome.storage.local.get('state')).state ?? initial();
+const load=async():Promise<State> => {const state:State=(await chrome.storage.local.get('state')).state??initial();const credentials=(await chrome.storage.local.get('credentials')).credentials;state.credentialsStored=!!(credentials?.key&&credentials?.token);if(!state.credentialsStored)state.connected=false;return state;};
 const save=async(state:State)=>chrome.storage.local.set({state});
 async function api(path:string,method='GET',body?:object,credentials?:Credentials){
  const c=credentials ?? (await chrome.storage.local.get('credentials')).credentials;
@@ -13,7 +13,7 @@ async function api(path:string,method='GET',body?:object,credentials?:Credential
  return response.json();
 }
 async function sync(state:State,cardId:string){
- const ledger=state.ledgers[cardId]??={};let operation='leer el comentario guardado';
+ const ledger=state.ledgers[cardId]??={};if(ledger.discarded)return;let operation='leer el comentario guardado';
  try {
   const text=comment(state,cardId);
   if(ledger.commentId){
@@ -53,10 +53,11 @@ const formatMinutes=(seconds:number)=>`${Math.round(seconds/60)} minutos`;
 async function handle(message:any,content:boolean){
  if(message.type==='OPEN'){await chrome.tabs.create({url:chrome.runtime.getURL('index.html')});return;}
  if(content&&!['START','ADD','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type))throw Error('Operación no permitida.');
- const state=await load();await settle(state);
+ const state=await load();if(message.type!=='DISCARD_SYNC')await settle(state);
  if(content&&['PAUSE','RESUME','FINISH','CANCEL'].includes(message.type)&&!cardPanelState(state,message.cardId).sameCard)throw Error('La sesión activa pertenece a otra tarjeta.');
  switch(message.type){
  case 'STATE':return state;
+ case 'DISCARD_SYNC':for(const ledger of Object.values(state.ledgers)){if(ledger.error){ledger.discarded=true;delete ledger.error;}}await save(state);return state;
  case 'SORT':if(!['default','time-desc','time-asc','recent','oldest'].includes(message.order))throw Error('Orden de tarjetas inválido.');state.cardSort=message.order;await save(state);return state;
  case 'FILTER':if(!['active','archived','all'].includes(message.status))throw Error('Filtro de tarjetas inválido.');state.cardStatus=message.status;await save(state);return state;
  case 'CARD_STATE':return cardPanelState(state,message.cardId);
@@ -66,9 +67,9 @@ async function handle(message:any,content:boolean){
   if(!/^[a-f0-9]{32}$/i.test(c?.key)||!c?.token||c.token.length>512||/[\s"\\]/.test(c.token))throw Error('Ingresá una API key y un token de Trello válidos. El token de Pomello no sirve aquí.');
   const member=await api('members/me?fields=id,fullName','GET',undefined,c);
   if(state.member&&state.member.id!==member.id)throw Error('Este perfil ya tiene registros de otra cuenta. Usá un perfil de Chrome separado.');
-  await chrome.storage.local.set({credentials:c});state.connected=true;state.member={id:member.id,name:member.fullName};await save(state);return state;
+  await chrome.storage.local.set({credentials:c});state.connected=true;state.credentialsStored=true;state.member={id:member.id,name:member.fullName};await save(state);return state;
  }
- case 'DISCONNECT':if(state.session)throw Error('Terminá o descartá la sesión primero.');await chrome.storage.local.remove('credentials');state.connected=false;await save(state);return state;
+ case 'DISCONNECT':if(state.session)throw Error('Terminá o descartá la sesión primero.');await chrome.storage.local.remove('credentials');state.connected=false;state.credentialsStored=false;await save(state);return state;
  case 'REFRESH':{
   state.boards=await api('members/me/boards?filter=all&fields=id,name,closed');
   state.cards=await api('members/me/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,closed');
@@ -93,6 +94,7 @@ async function handle(message:any,content:boolean){
   if(message.type==='START'&&state.session)throw Error('Ya hay una sesión activa. Abrí el panel para gestionarla.');
   const card:Card=state.cards.find(c=>c.id===message.cardId||c.url.split("/")[4]===message.cardId) ?? await api(`cards/${message.cardId}?fields=id,name,url,idBoard,idList,idMembers`);
   if(!state.cards.some(c=>c.id===card.id))state.cards.push(card);
+  if(state.ledgers[card.id]?.discarded)state.ledgers[card.id]={};
   if(message.type==='START'){state.session={id:crypto.randomUUID(),card,duration:state.minutes*60,remaining:state.minutes*60,end:Date.now()+state.minutes*60000,startedAt:new Date().toISOString()};await save(state);await alarm(state);await sync(state,card.id);}
   else {const seconds=validateSeconds(message.seconds);if(typeof message.id!=='string'||message.id.length>100)throw Error('Registro inválido.');addEntry(state,{id:message.id,cardId:card.id,seconds,date:new Date().toISOString(),note:String(message.note??'').slice(0,200),kind:'manual'});await save(state);await sync(state,card.id);}
   return state;
@@ -111,8 +113,15 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
  if(sender.id!==chrome.runtime.id)return;
  const content=!!sender.url?.startsWith('https://trello.com/');
  if(!content&&!sender.url?.startsWith(chrome.runtime.getURL('')))return;
- if(content&&['ADD','START','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type)&&message.cardId!==new URL(sender.url!).pathname.match(/^\/c\/([^/]+)/)?.[1]){respond({error:'Abrí la tarjeta antes de registrar tiempo.'});return;}
- serial(async()=>{const data=await handle(message,content);return content?cardPanelState(await load(),message.cardId):data;}).then(data=>respond({data}),error=>respond({error:error.message??'No se pudo completar la acción.'}));return true;
+ serial(async()=>{
+  if(content&&['ADD','START','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type)){
+   // Trello cambia la ruta con navegación interna; sender.url puede conservar la ruta inicial.
+   if(sender.tab?.id===undefined)throw Error('No se pudo identificar la pestaña de Trello.');
+   const currentTab=await chrome.tabs.get(sender.tab.id);
+   const currentUrl=new URL(currentTab.url??'https://trello.com/');
+   if(currentUrl.origin!=='https://trello.com'||message.cardId!==currentUrl.pathname.match(/^\/c\/([^/]+)/)?.[1])throw Error('La tarjeta cambió. Esperá un momento o volvé a abrirla.');
+  }
+  const data=await handle(message,content);return content?cardPanelState(await load(),message.cardId):data;}).then(data=>respond({data}),error=>respond({error:error.message??'No se pudo completar la acción.'}));return true;
 });
 chrome.alarms.onAlarm.addListener(()=>{void serial(async()=>{const state=await load();await settle(state);});});
 chrome.runtime.onStartup.addListener(()=>{void serial(async()=>{const state=await load();if(state.session?.end&&state.session.end<Date.now()){state.session.review=true;state.session.remaining=0;state.session.end=null;await save(state);}await alarm(state);});});

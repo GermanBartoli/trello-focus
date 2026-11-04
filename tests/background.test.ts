@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initial} from '../src/model.ts';
 test('Flujo real del worker compilado: comentario único, reintentos, sesión y permisos',async()=>{
- const db:any={};let listener:any;const alarmListeners:any[]=[];let requests:any[]=[];let comments:any[]=[];let failPut=false;let failPost=false;let rejectPost=false;
+ let tabUrl='https://trello.com/';const db:any={};let listener:any;const alarmListeners:any[]=[];let requests:any[]=[];let comments:any[]=[];let failPut=false;let failPost=false;let rejectPost=false;
  const member='a'.repeat(24),cardId='b'.repeat(24),card={id:cardId,name:'Tarjeta de prueba',url:'https://trello.com/c/AbCd1234/prueba',idMembers:[member]};
- (globalThis as any).chrome={storage:{local:{get:async(key:string)=>structuredClone({[key]:db[key]}),set:async(data:object)=>Object.assign(db,structuredClone(data)),remove:async(key:string)=>{delete db[key];},setAccessLevel:async()=>{}}},runtime:{id:'extension',getURL:(p:string)=>`chrome-extension://extension/${p}`,onMessage:{addListener:(fn:any)=>listener=fn},onStartup:{addListener:()=>{}}},alarms:{clear:async()=>{},create:async()=>{},onAlarm:{addListener:(fn:any)=>alarmListeners.push(fn)}},action:{setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}},notifications:{create:()=>{}},tabs:{create:async()=>{}}};
+ (globalThis as any).chrome={storage:{local:{get:async(key:string)=>structuredClone({[key]:db[key]}),set:async(data:object)=>Object.assign(db,structuredClone(data)),remove:async(key:string)=>{delete db[key];},setAccessLevel:async()=>{}}},runtime:{id:'extension',getURL:(p:string)=>`chrome-extension://extension/${p}`,onMessage:{addListener:(fn:any)=>listener=fn},onStartup:{addListener:()=>{}}},alarms:{clear:async()=>{},create:async()=>{},onAlarm:{addListener:(fn:any)=>alarmListeners.push(fn)}},action:{setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}},notifications:{create:()=>{}},tabs:{create:async()=>{},get:async()=>({url:tabUrl})}};
  (globalThis as any).fetch=async(url:string,options:any)=>{
   const path=url.split('/1/')[1];requests.push({path,method:options.method});const payload=options.body?JSON.parse(options.body):null;
   if(path.startsWith('members/me/boards?')){assert.match(path,/filter=all/);return Response.json([{id:'d'.repeat(24),name:'Tablero',closed:false}]);}
@@ -21,7 +21,7 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
   throw Error(`Petición no simulada: ${path}`);
  };
  await import('../dist/background.js' as string);
- const send=(type:string,data:object={},url='chrome-extension://extension/index.html'):Promise<any>=>new Promise(resolve=>listener({type,...data},{id:'extension',url},resolve));
+ const send=(type:string,data:object={},url='chrome-extension://extension/index.html',currentUrl=url):Promise<any>=>new Promise(resolve=>{tabUrl=currentUrl;listener({type,...data},{id:'extension',url,tab:{id:7}},resolve);});
  await send('STATE');
  assert.match((await send('CONNECT',{credentials:{key:'x',token:'pomello'}})).error,/válidos/);
  assert.ok(!(await send('CONNECT',{credentials:{key:'a'.repeat(32),token:'token-prueba'}})).error);
@@ -34,7 +34,7 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  await send('START',{cardId});db.state.session.end=Date.now()-120000;await send('STATE');assert.equal(db.state.session.review,true);await send('CANCEL');
  await send('START',{cardId});db.state.session.end=Date.now()-100;const count=db.state.entries.length;await send('STATE');await send('STATE');assert.equal(db.state.entries.length,count+1);assert.equal(db.state.session,undefined);
  assert.match((await send('CONNECT',{},'https://trello.com/c/AbCd1234/test')).error,/permitida/);
- assert.match((await send('ADD',{cardId:'otra',seconds:60,id:'no'},'https://trello.com/c/AbCd1234/test')).error,/Abrí/);
+ assert.match((await send('ADD',{cardId:'otra',seconds:60,id:'no'},'https://trello.com/c/AbCd1234/test')).error,/cambió/);
  db.state={...initial(),connected:true,member:{id:member,name:'Persona'}};comments=[];failPost=true;
  await send('ADD',{cardId,seconds:60,id:'incierta'});assert.equal(comments.length,1);failPost=false;await send('SYNC');assert.equal(comments.length,1);assert.equal(db.state.ledgers[cardId].commentId,'comentario');
  const previousEntries=structuredClone(db.state.entries);
@@ -56,5 +56,15 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  await send('RESUME',{cardId:'AbCd1234'},source);assert.ok(db.state.session.end);assert.match(comments[0].data.text,/Sesión en curso/);
  assert.match((await send('CANCEL',{cardId:'OtRa1234'},'https://trello.com/c/OtRa1234/prueba')).error,/otra tarjeta/);
  await send('CANCEL',{cardId:'AbCd1234'},source);assert.equal(comments.length,1);assert.doesNotMatch(comments[0].data.text,/Sesión en/);
- await send('DISCONNECT');assert.equal(db.credentials,undefined);assert.equal(db.state.connected,false);
+ const moved=await send('CARD_STATE',{cardId:'AbCd1234'},'https://trello.com/b/tablero','https://trello.com/c/AbCd1234/prueba');assert.equal(moved.data.minutes,25);assert.equal(moved.error,undefined);
+ assert.match((await send('START',{cardId:'AbCd1234'},source,'https://trello.com/c/Other123/prueba')).error,/cambió/);
+ const stateResponse=await send('STATE');assert.equal(stateResponse.data.credentialsStored,true);assert.equal(JSON.stringify(stateResponse).includes('token-prueba'),false);
+ db.state.ledgers[cardId]={commentId:'eliminado',error:'HTTP 404'};
+ const beforeDiscard=structuredClone(db.state.entries),callsBefore=requests.length;
+ await send('DISCARD_SYNC');assert.equal(db.state.ledgers[cardId].discarded,true);assert.equal(db.state.ledgers[cardId].error,undefined);assert.deepEqual(db.state.entries,beforeDiscard);assert.equal(requests.length,callsBefore);
+ await send('SYNC');assert.equal(requests.length,callsBefore);
+ assert.equal((await send('CARD_STATE',{cardId:'AbCd1234'},source)).data.syncDiscarded,true);
+ comments=[];await send('ADD',{cardId,seconds:60,id:'despues-descartar'});assert.equal(comments.length,1);assert.equal(db.state.ledgers[cardId].discarded,undefined);assert.equal(db.state.entries.length,beforeDiscard.length+1);
+ assert.match((await send('DISCARD_SYNC',{},source)).error,/permitida/);
+ await send('DISCONNECT');assert.equal(db.credentials,undefined);assert.equal(db.state.connected,false);assert.equal((await send('STATE')).data.credentialsStored,false);
 });

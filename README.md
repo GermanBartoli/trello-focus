@@ -4,7 +4,7 @@ Extensión personal de Chrome para registrar tiempo en Trello, creada con TypeSc
 
 ## Instalación
 
-1. Descargar `trello-focus-v0.1.4.zip` desde Releases y descomprimirlo en una carpeta permanente.
+1. Descargar `trello-focus-v0.1.5.zip` desde Releases y descomprimirlo en una carpeta permanente.
 2. Abrir `chrome://extensions`, activar **Modo desarrollador** y elegir **Cargar descomprimida**. Seleccionar la carpeta que contiene `manifest.json`.
 3. Abrir el icono de Trello Focus y pulsar **Abrir mi panel** → **Configuración**.
 4. Crear una aplicación propia en <https://trello.com/apps/admin>, obtener su API key, ingresarla y pulsar **Abrir autorización de Trello**. Autorizar lectura y escritura durante 30 días, copiar el token mostrado por Trello e ingresarlo en la extensión. El token de Pomello no funciona en esta integración.
@@ -16,6 +16,8 @@ El usuario final no necesita Node.js ni `node_modules`. Para actualizar una inst
 
 - Panel flotante en las tarjetas de Trello: sumar horas/minutos e iniciar una sesión.
 - El panel flotante muestra la cuenta regresiva, pausa, continuación, finalización y errores exclusivos de la tarjeta abierta. Iniciar una sesión publica su estado en el comentario; solo se suma el tiempo al terminar.
+- Permite descartar sincronizaciones fallidas conservando el historial local. No vuelve a enviarlas automáticamente; una nueva carga manual o sesión en esa tarjeta inicia una nueva búsqueda de comentario.
+- Configuración con estado de conexión visible y marcadores ocultos de credenciales guardadas; sus valores no se devuelven a la interfaz.
 - Popup con temporizador y acceso al panel completo.
 - Panel con tarjetas asignadas, tableros, listas, búsqueda y favoritas. Seleccionar un tablero permite cargar sus tarjetas no asignadas.
 - Filtro **Activas / Archivadas / Todas**, con **Activas** como valor inicial. Se recuerda la última opción elegida en este perfil de Chrome. Incluye tarjetas dentro de listas o tableros archivados. El filtro se combina con búsqueda, tablero, lista, asignación y favoritas; no desarchiva tarjetas ni importa tiempo previo.
@@ -39,7 +41,7 @@ Si el navegador se cierra o una alarma llega más de 90 segundos tarde, una sesi
 
 La extensión se comunica únicamente con la API de Trello para sus funciones. No tiene servidor propio ni telemetría. Credenciales e historial se almacenan en `chrome.storage.local`, con acceso restringido a contextos confiables de la extensión. No se usa sincronización de Chrome para credenciales. Este almacenamiento no es una bóveda cifrada independiente: proteger el perfil de Windows/Chrome.
 
-El script de la tarjeta recibe solamente la configuración mínima y envía acciones al proceso de fondo. No recibe el token. Los permisos son `storage`, `alarms`, `notifications`, acceso a la API de Trello y un script en `trello.com`. **Desconectar autorización** elimina la credencial local; para revocar el acceso en Trello usar la administración de aplicaciones de la cuenta.
+El script de la tarjeta recibe solamente la configuración mínima y envía acciones al proceso de fondo. No recibe el token. Los permisos son `storage`, `alarms`, `notifications`, acceso a la API y al dominio `trello.com` para comprobar la URL actual de la pestaña, y un script en `trello.com`. **Desconectar autorización** elimina la credencial local; para revocar el acceso en Trello usar la administración de aplicaciones de la cuenta.
 
 ## Desarrollo
 

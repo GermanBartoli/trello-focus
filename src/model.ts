@@ -1,8 +1,8 @@
 export type Card = {id:string;name:string;url:string;idBoard?:string;idList?:string;idMembers?:string[];closed?:boolean};
 export type Entry = {id:string;cardId:string;seconds:number;date:string;note:string;kind:'manual'|'session'};
 export type Session = {id:string;card:Card;duration:number;remaining:number;end:number|null;startedAt?:string;review?:boolean};
-export type Ledger = {commentId?:string;text?:string;creating?:boolean;pendingText?:string;error?:string};
-export type State = {cardStatus?:CardStatus;cardSort?:CardSort;connected?:boolean;member?:{id:string;name:string};cards:Card[];boards:{id:string;name:string;closed?:boolean}[];lists:{id:string;name:string;idBoard?:string;closed?:boolean}[];entries:Entry[];session?:Session;ledgers:Record<string,Ledger>;favorites:string[];minutes:number;notifications:boolean};
+export type Ledger = {discarded?:boolean;commentId?:string;text?:string;creating?:boolean;pendingText?:string;error?:string};
+export type State = {credentialsStored?:boolean;cardStatus?:CardStatus;cardSort?:CardSort;connected?:boolean;member?:{id:string;name:string};cards:Card[];boards:{id:string;name:string;closed?:boolean}[];lists:{id:string;name:string;idBoard?:string;closed?:boolean}[];entries:Entry[];session?:Session;ledgers:Record<string,Ledger>;favorites:string[];minutes:number;notifications:boolean};
 export const initial = ():State => ({cardStatus:'active',cardSort:'default',cards:[],boards:[],lists:[],entries:[],ledgers:{},favorites:[],minutes:25,notifications:true});
 export const remaining = (s:Session,now=Date.now()) => s.end === null ? s.remaining : Math.max(0,Math.ceil((s.end-now)/1000));
 export const elapsed = (s:Session,now=Date.now()) => Math.max(0,s.duration-remaining(s,now));
@@ -52,5 +52,6 @@ export function cardPanelState(state:State,cardId:string){
  return {minutes:state.minutes,connected:!!state.connected,active:!!session,sameCard:same,
   session:same?session:undefined,otherCard:session&&!same?session.card.name:undefined,
   error:card?state.ledgers[card.id]?.error:undefined,
+  syncDiscarded:card?!!state.ledgers[card.id]?.discarded:false,
   total:card?state.entries.filter(e=>e.cardId===card.id).reduce((n,e)=>n+e.seconds,0):0};
 }
