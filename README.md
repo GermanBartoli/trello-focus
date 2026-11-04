@@ -4,7 +4,7 @@ Extensión personal de Chrome para registrar tiempo en Trello, creada con TypeSc
 
 ## Instalación
 
-1. Descargar `trello-focus-v0.1.6.zip` desde Releases y descomprimirlo en una carpeta permanente.
+1. Descargar `trello-focus-v0.1.7.zip` desde Releases y descomprimirlo en una carpeta permanente.
 2. Abrir `chrome://extensions`, activar **Modo desarrollador** y elegir **Cargar descomprimida**. Seleccionar la carpeta que contiene `manifest.json`.
 3. Abrir el icono de Trello Focus y pulsar **Abrir mi panel** → **Configuración**.
 4. Crear una aplicación propia en <https://trello.com/apps/admin>, obtener su API key, ingresarla y pulsar **Abrir autorización de Trello**. Autorizar lectura y escritura durante 30 días, copiar el token mostrado por Trello e ingresarlo en la extensión. El token de Pomello no funciona en esta integración.
@@ -67,3 +67,5 @@ El flujo de GitHub Actions compila, ejecuta pruebas y adjunta la carpeta instala
 Cada registro permite editar horas, minutos, segundos y nota, o eliminarlo con confirmación. Se conservan fecha y tipo al editar; los totales y el comentario propio se actualizan al sincronizar. Si la sincronización fue descartada, los cambios permanecen locales.
 
 El título de una tarjeta abre su detalle dentro del panel, con historial y enlace a Trello. Cada sección tiene su URL (`?view=cards`, `?view=history`, `?view=settings` y `?view=card&card=ID`), compatible con recarga y Atrás/Adelante.
+
+En el panel flotante de Trello, **Ver historial de esta tarjeta** abre directamente su detalle en Trello Focus. El botón general del panel sigue disponible.

@@ -51,6 +51,13 @@ async function settle(state:State){
 }
 const formatMinutes=(seconds:number)=>`${Math.round(seconds/60)} minutos`;
 async function handle(message:any,content:boolean){
+ if(message.type==='OPEN_CARD'){
+  if(typeof message.cardId!=='string'||!/^[a-zA-Z0-9]{8,24}$/.test(message.cardId))throw Error('Tarjeta inválida.');
+  const state=await load();
+  let card=state.cards.find(c=>c.id===message.cardId||c.url.split('/')[4]===message.cardId);
+  if(!card){card=await api(`cards/${message.cardId}?fields=id,name,url,idBoard,idList,idMembers,closed`) as Card;state.cards.push(card);await save(state);}
+  await chrome.tabs.create({url:chrome.runtime.getURL('index.html')+'?view=card&card='+encodeURIComponent(card.id)});return;
+ }
  if(message.type==='OPEN'){await chrome.tabs.create({url:chrome.runtime.getURL('index.html')});return;}
  if(content&&!['START','ADD','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type))throw Error('Operación no permitida.');
  const state=await load();if(message.type!=='DISCARD_SYNC')await settle(state);
@@ -124,7 +131,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
  const content=!!sender.url?.startsWith('https://trello.com/');
  if(!content&&!sender.url?.startsWith(chrome.runtime.getURL('')))return;
  serial(async()=>{
-  if(content&&['ADD','START','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type)){
+  if(content&&['OPEN_CARD','ADD','START','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type)){
    // Trello cambia la ruta con navegación interna; sender.url puede conservar la ruta inicial.
    if(sender.tab?.id===undefined)throw Error('No se pudo identificar la pestaña de Trello.');
    const currentTab=await chrome.tabs.get(sender.tab.id);

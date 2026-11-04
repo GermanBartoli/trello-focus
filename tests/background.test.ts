@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initial} from '../src/model.ts';
 test('Flujo real del worker compilado: comentario único, reintentos, sesión y permisos',async()=>{
- let tabUrl='https://trello.com/';const db:any={};let listener:any;const alarmListeners:any[]=[];let requests:any[]=[];let comments:any[]=[];let failPut=false;let failPost=false;let rejectPost=false;
+ const opened:string[]=[];let tabUrl='https://trello.com/';const db:any={};let listener:any;const alarmListeners:any[]=[];let requests:any[]=[];let comments:any[]=[];let failPut=false;let failPost=false;let rejectPost=false;
  const member='a'.repeat(24),cardId='b'.repeat(24),card={id:cardId,name:'Tarjeta de prueba',url:'https://trello.com/c/AbCd1234/prueba',idMembers:[member]};
- (globalThis as any).chrome={storage:{local:{get:async(key:string)=>structuredClone({[key]:db[key]}),set:async(data:object)=>Object.assign(db,structuredClone(data)),remove:async(key:string)=>{delete db[key];},setAccessLevel:async()=>{}}},runtime:{id:'extension',getURL:(p:string)=>`chrome-extension://extension/${p}`,onMessage:{addListener:(fn:any)=>listener=fn},onStartup:{addListener:()=>{}}},alarms:{clear:async()=>{},create:async()=>{},onAlarm:{addListener:(fn:any)=>alarmListeners.push(fn)}},action:{setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}},notifications:{create:()=>{}},tabs:{create:async()=>{},get:async()=>({url:tabUrl})}};
+ (globalThis as any).chrome={storage:{local:{get:async(key:string)=>structuredClone({[key]:db[key]}),set:async(data:object)=>Object.assign(db,structuredClone(data)),remove:async(key:string)=>{delete db[key];},setAccessLevel:async()=>{}}},runtime:{id:'extension',getURL:(p:string)=>`chrome-extension://extension/${p}`,onMessage:{addListener:(fn:any)=>listener=fn},onStartup:{addListener:()=>{}}},alarms:{clear:async()=>{},create:async()=>{},onAlarm:{addListener:(fn:any)=>alarmListeners.push(fn)}},action:{setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}},notifications:{create:()=>{}},tabs:{create:async({url}:{url:string})=>{opened.push(url);},get:async()=>({url:tabUrl})}};
  (globalThis as any).fetch=async(url:string,options:any)=>{
   const path=url.split('/1/')[1];requests.push({path,method:options.method});const payload=options.body?JSON.parse(options.body):null;
   if(path.startsWith('members/me/boards?')){assert.match(path,/filter=all/);return Response.json([{id:'d'.repeat(24),name:'Tablero',closed:false}]);}
@@ -59,6 +59,10 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  await send('START',{cardId});assert.ok(db.state.session);assert.equal(db.state.entries.length,0);assert.match(db.state.ledgers[cardId].error,/crear el comentario.*404/);assert.equal(db.state.ledgers[cardId].creating,false);
  rejectPost=false;await send('SYNC');assert.equal(comments.length,1);assert.match(comments[0].data.text,/Sesión en curso/);assert.equal(db.state.ledgers[cardId].error,undefined);
  const source='https://trello.com/c/AbCd1234/prueba';
+ await send('OPEN_CARD',{cardId:'AbCd1234'},source);assert.equal(opened.at(-1),'chrome-extension://extension/index.html?view=card&card='+cardId);
+ await send('OPEN');assert.equal(opened.at(-1),'chrome-extension://extension/index.html');
+ const openedBefore=opened.length;assert.match((await send('OPEN_CARD',{cardId:'Other123'},source)).error,/cambió/);assert.equal(opened.length,openedBefore);
+ const savedCards=db.state.cards;db.state.cards=[];await send('OPEN_CARD',{cardId:'AbCd1234'},source);assert.equal(db.state.cards[0].id,cardId);assert.equal(opened.at(-1),'chrome-extension://extension/index.html?view=card&card='+cardId);db.state.cards=savedCards;
  const panel=await send('CARD_STATE',{cardId:'AbCd1234'},source);assert.equal(panel.data.sameCard,true);assert.ok(panel.data.session);assert.equal(panel.data.entries,undefined);
  await send('PAUSE',{cardId:'AbCd1234'},source);assert.equal(db.state.session.end,null);assert.match(comments[0].data.text,/Sesión en pausa/);
  await send('RESUME',{cardId:'AbCd1234'},source);assert.ok(db.state.session.end);assert.match(comments[0].data.text,/Sesión en curso/);
