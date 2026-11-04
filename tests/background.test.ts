@@ -7,6 +7,10 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  (globalThis as any).chrome={storage:{local:{get:async(key:string)=>structuredClone({[key]:db[key]}),set:async(data:object)=>Object.assign(db,structuredClone(data)),remove:async(key:string)=>{delete db[key];},setAccessLevel:async()=>{}}},runtime:{id:'extension',getURL:(p:string)=>`chrome-extension://extension/${p}`,onMessage:{addListener:(fn:any)=>listener=fn},onStartup:{addListener:()=>{}}},alarms:{clear:async()=>{},create:async()=>{},onAlarm:{addListener:(fn:any)=>alarmListeners.push(fn)}},action:{setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}},notifications:{create:()=>{}},tabs:{create:async()=>{}}};
  (globalThis as any).fetch=async(url:string,options:any)=>{
   const path=url.split('/1/')[1];requests.push({path,method:options.method});const payload=options.body?JSON.parse(options.body):null;
+  if(path.startsWith('members/me/boards?')){assert.match(path,/filter=all/);return Response.json([{id:'d'.repeat(24),name:'Tablero',closed:false}]);}
+  if(path.startsWith('members/me/cards?')){assert.match(path,/filter=all/);assert.match(path,/closed/);return Response.json([card,{...card,id:'archivada',idBoard:'d'.repeat(24),closed:true}]);}
+  if(path.includes('/lists?')){assert.match(path,/filter=all/);return Response.json([{id:'lista',name:'Lista archivada',closed:true}]);}
+  if(path.startsWith('boards/')&&path.includes('/cards?')){assert.match(path,/filter=all/);assert.match(path,/closed/);return Response.json([{...card,id:'archivada',idBoard:'d'.repeat(24),closed:true}]);}
   if(path.startsWith('members/me?'))return Response.json({id:member,fullName:'Persona de prueba'});
   if(path.startsWith(`cards/${cardId}?`)||path.startsWith('cards/AbCd1234?'))return Response.json(card);
   if(path.includes('filter=commentCard'))return Response.json(comments);
@@ -32,5 +36,12 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  assert.match((await send('ADD',{cardId:'otra',seconds:60,id:'no'},'https://trello.com/c/AbCd1234/test')).error,/Abrí/);
  db.state={...initial(),connected:true,member:{id:member,name:'Persona'}};comments=[];failPost=true;
  await send('ADD',{cardId,seconds:60,id:'incierta'});assert.equal(comments.length,1);failPost=false;await send('SYNC');assert.equal(comments.length,1);assert.equal(db.state.ledgers[cardId].commentId,'comentario');
+ const previousEntries=structuredClone(db.state.entries);
+ await send('REFRESH');assert.equal(db.state.cards.length,2);assert.equal(db.state.cards[1].closed,true);assert.equal(db.state.lists[0].closed,true);
+ await send('BOARD',{id:'d'.repeat(24)});assert.equal(db.state.cards.find((c:any)=>c.id==='archivada').closed,true);
+ await send('FILTER',{status:'archived'});assert.equal((await send('STATE')).data.cardStatus,'archived');
+ await send('REFRESH');assert.equal(db.state.cardStatus,'archived');assert.deepEqual(db.state.entries,previousEntries);
+ assert.match((await send('FILTER',{status:'invalid'})).error,/inválido/);assert.equal(db.state.cardStatus,'archived');
+ await send('FILTER',{status:'all'});assert.equal((await send('STATE')).data.cardStatus,'all');
  await send('DISCONNECT');assert.equal(db.credentials,undefined);assert.equal(db.state.connected,false);
 });

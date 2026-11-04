@@ -54,6 +54,7 @@ async function handle(message:any,content:boolean){
  const state=await load();await settle(state);
  switch(message.type){
  case 'STATE':return state;
+ case 'FILTER':if(!['active','archived','all'].includes(message.status))throw Error('Filtro de tarjetas inválido.');state.cardStatus=message.status;await save(state);return state;
  case 'CARD_STATE':return {minutes:state.minutes,active:!!state.session,connected:!!state.connected};
  case 'CONNECT':{
   if(content)throw Error('Operación no permitida.');
@@ -65,15 +66,20 @@ async function handle(message:any,content:boolean){
  }
  case 'DISCONNECT':if(state.session)throw Error('Terminá o descartá la sesión primero.');await chrome.storage.local.remove('credentials');state.connected=false;await save(state);return state;
  case 'REFRESH':{
-  state.boards=await api('members/me/boards?filter=open&fields=id,name');
-  state.cards=await api('members/me/cards?filter=visible&fields=id,name,url,idBoard,idList,idMembers');
+  state.boards=await api('members/me/boards?filter=all&fields=id,name,closed');
+  state.cards=await api('members/me/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,closed');
+  state.lists=[];
+  for(const id of new Set(state.cards.map(c=>c.idBoard).filter(Boolean))){
+   const lists=await api(`boards/${id}/lists?filter=all&fields=id,name,idBoard,closed`);
+   state.lists.push(...lists);
+  }
   await save(state);return state;
  }
  case 'BOARD':{
   if(!/^[a-f0-9]{24}$/.test(message.id))throw Error('Tablero inválido.');
-  const cards=await api(`boards/${message.id}/cards?filter=open&fields=id,name,url,idBoard,idList,idMembers`);
+  const cards=await api(`boards/${message.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,closed`);
   state.cards=[...state.cards.filter(c=>c.idBoard!==message.id),...cards];
-  const lists=await api(`boards/${message.id}/lists?filter=open&fields=id,name`);state.lists=[...state.lists.filter(l=>!lists.some((n:any)=>n.id===l.id)),...lists];await save(state);return state;
+  const lists=await api(`boards/${message.id}/lists?filter=all&fields=id,name,idBoard,closed`);state.lists=[...state.lists.filter(l=>!lists.some((n:any)=>n.id===l.id)),...lists];await save(state);return state;
  }
  case 'SETTINGS':state.minutes=Math.min(180,Math.max(1,Math.round(Number(message.minutes)||25)));state.notifications=!!message.notifications;await save(state);return state;
  case 'FAVORITE':state.favorites=state.favorites.includes(message.id)?state.favorites.filter(id=>id!==message.id):[...state.favorites,message.id];await save(state);return state;
