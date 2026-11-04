@@ -54,6 +54,7 @@ async function handle(message:any,content:boolean){
  const state=await load();await settle(state);
  switch(message.type){
  case 'STATE':return state;
+ case 'SORT':if(!['default','time-desc','time-asc','recent','oldest'].includes(message.order))throw Error('Orden de tarjetas inválido.');state.cardSort=message.order;await save(state);return state;
  case 'FILTER':if(!['active','archived','all'].includes(message.status))throw Error('Filtro de tarjetas inválido.');state.cardStatus=message.status;await save(state);return state;
  case 'CARD_STATE':return {minutes:state.minutes,active:!!state.session,connected:!!state.connected};
  case 'CONNECT':{

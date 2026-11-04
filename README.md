@@ -4,7 +4,7 @@ Extensión personal de Chrome para registrar tiempo en Trello, creada con TypeSc
 
 ## Instalación
 
-1. Descargar `trello-focus-v0.1.2.zip` desde Releases y descomprimirlo en una carpeta permanente.
+1. Descargar `trello-focus-v0.1.3.zip` desde Releases y descomprimirlo en una carpeta permanente.
 2. Abrir `chrome://extensions`, activar **Modo desarrollador** y elegir **Cargar descomprimida**. Seleccionar la carpeta que contiene `manifest.json`.
 3. Abrir el icono de Trello Focus y pulsar **Abrir mi panel** → **Configuración**.
 4. Crear una aplicación propia en <https://trello.com/apps/admin>, obtener su API key, ingresarla y pulsar **Abrir autorización de Trello**. Autorizar lectura y escritura durante 30 días, copiar el token mostrado por Trello e ingresarlo en la extensión. El token de Pomello no funciona en esta integración.
@@ -18,6 +18,7 @@ El usuario final no necesita Node.js ni `node_modules`. Para actualizar una inst
 - Popup con temporizador y acceso al panel completo.
 - Panel con tarjetas asignadas, tableros, listas, búsqueda y favoritas. Seleccionar un tablero permite cargar sus tarjetas no asignadas.
 - Filtro **Activas / Archivadas / Todas**, con **Activas** como valor inicial. Se recuerda la última opción elegida en este perfil de Chrome. Incluye tarjetas dentro de listas o tableros archivados. El filtro se combina con búsqueda, tablero, lista, asignación y favoritas; no desarchiva tarjetas ni importa tiempo previo.
+- Orden por tiempo acumulado (mayor/menor) o fecha del último trabajo registrado (reciente/antiguo), con elección persistente. Los órdenes de fecha dejan al final las tarjetas sin registros. Se utiliza el historial local de Trello Focus, no la actividad general de Trello ni el tiempo pendiente de una sesión activa.
 - Una sola sesión activa, pausa, continuación, finalización anticipada y descarte.
 - Duración configurable entre 1 y 180 minutos y notificación de finalización.
 - Un comentario propio por tarjeta y cuenta. Las cargas siguientes editan ese comentario; Pomello permanece independiente.
