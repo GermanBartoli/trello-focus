@@ -99,3 +99,7 @@ Los filtros de persona, etiqueta, vencimiento y finalización se combinan con ta
 La sección Estadísticas muestra cuatro gráficos: tiempo diario de la semana, cinco tarjetas con más dedicación, distribución por tablero y sesiones frente a cargas manuales. Incluye tiempo total, promedio diario, días activos, sesiones guardadas y comparación con la semana anterior completa. Permite recorrer semanas y abrir el historial desde el ranking.
 
 Se calcula a partir del historial local, sin servicios externos ni dependencias nuevas. Incluye tarjetas archivadas y registros de tarjetas que ya no están cargadas. Usa la fecha local de cada registro; las sesiones en curso y las fechas futuras no se contabilizan. El promedio actual incluye los días transcurridos, incluido hoy; en semanas anteriores divide por siete. Editar o eliminar registros actualiza las cifras.
+
+## Portadas y prioridad visual
+
+En Mis tarjetas, «Mostrar portada» permite ver una mini portada de color o imagen arriba, a todo el ancho. Está desactivado inicialmente y recuerda la preferencia. «Prioridad: rojo → rosa → verde» ordena primero esos colores; los demás colores, imágenes y tarjetas sin portada quedan después, conservando su orden relativo. El orden se guarda y funciona aunque las portadas estén ocultas. Usá Actualizar tarjetas para cargar los cambios de portada realizados en Trello.

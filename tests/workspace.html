@@ -2,7 +2,9 @@
 const cardId='a'.repeat(24),member='b'.repeat(24),board='d'.repeat(24),list='e'.repeat(24);
 const state={credentialsStored:true,connected:true,member:{id:member,name:'Usuario de prueba'},cards:[{id:cardId,name:'Preparar el lanzamiento de Trello Focus',url:'https://trello.com/c/AbCd1234',desc:'**Objetivo:** organizar el trabajo desde un solo lugar.',idBoard:board,idList:list,idMembers:[member],cover:{color:'green'}}],boards:[{id:board,name:'Proyectos personales'}],lists:[{id:list,name:'En curso'}],entries:[{id:'registro',cardId,seconds:1500,date:new Date().toISOString(),kind:'session',note:'Revisión del diseño'}],focusNotes:[],ledgers:{},favorites:[],minutes:25,notifications:true};
 const details={card:state.cards[0],members:[{id:member,fullName:'Usuario de prueba'},{id:'f'.repeat(24),fullName:'Colaborador de prueba'}],comments:[{id:'c'.repeat(24),idMemberCreator:member,date:new Date().toISOString(),data:{text:'Listo para revisar. **Primera versión**'},memberCreator:{fullName:'Usuario de prueba'}}],attachments:[],stickers:[],customStickers:[],lists:state.lists};
+state.cards.push(...['pink','red'].map((color,i)=>({...state.cards[0],id:String(i+1).repeat(24),name:color==='red'?'Prioridad alta':'Prioridad media',cover:{color}})));
 window.chrome={runtime:{id:'prueba',getManifest:()=>({version:'0.2.0'}),sendMessage:async m=>{
+if(m.type==='SORT')state.cardSort=m.order;
 if(m.type==='BOARD_OPTIONS')return {data:{lists:state.lists,members:details.members,labels:[{id:'7'.repeat(24),name:'Urgente',color:'red'}]}};
 if(m.type==='CARD_CREATE'){const card={id:'6'.repeat(24),name:m.name,desc:m.desc,idBoard:board,idList:m.listId,idMembers:m.members,url:'https://trello.com/c/Test1234'};state.cards.push(card);details.card=card;return {data:card};}
 if(m.type==='CARD_DETAILS')return {data:structuredClone(details)};

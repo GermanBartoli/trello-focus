@@ -55,3 +55,8 @@ test('Filtros combinados por persona, etiqueta y vencimiento respetan fechas y f
  const {matchesExtra}=await import('../src/model.ts');const c={id:'x',name:'Tarea',url:'',idMembers:['ana'],idLabels:['roja'],due:'2026-11-04T12:00:00',dueComplete:false};const f={person:'ana',label:'roja',due:'today',completion:'pending'};const now=new Date('2026-11-04T10:00:00');
  assert.equal(matchesExtra(c,f,now),true);assert.equal(matchesExtra(c,{...f,person:'otro'},now),false);assert.equal(matchesExtra(c,{...f,label:'none'},now),false);assert.equal(matchesExtra(c,{...f,due:'tomorrow'},now),false);assert.equal(matchesExtra({...c,dueComplete:true},f,now),false);assert.equal(matchesExtra({...c,idMembers:[],idLabels:[],due:null},{person:'none',label:'none',due:'none',completion:''},now),true);
 });
+
+test('Prioridad de portada ordena rojo, rosa y verde antes del resto y conserva empates',()=>{
+ const cards=[{id:'sin',name:'Sin',url:''},{id:'verde',name:'Normal',url:'',cover:{color:'green'}},{id:'rosa',name:'Media',url:'',cover:{color:'pink'}},{id:'roja',name:'Alta',url:'',cover:{color:'red'}},{id:'otra',name:'Otro',url:'',cover:{color:'blue'}},{id:'roja2',name:'Alta 2',url:'',cover:{color:'red'}}];
+ assert.deepEqual(sortCards(cards,[],'cover-priority').map(c=>c.id),['roja','roja2','rosa','verde','sin','otra']);assert.equal(cards[0].id,'sin');
+});

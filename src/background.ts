@@ -56,7 +56,7 @@ async function handle(message:any,content:boolean){
   if(typeof message.cardId!=='string'||!/^[a-zA-Z0-9]{8,24}$/.test(message.cardId))throw Error('Tarjeta inválida.');
   const state=await load();
   let card=state.cards.find(c=>c.id===message.cardId||c.url.split('/')[4]===message.cardId);
-  if(!card){card=await api(`cards/${message.cardId}?fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed`) as Card;state.cards.push(card);await save(state);}
+  if(!card){card=await api(`cards/${message.cardId}?fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed,cover`) as Card;state.cards.push(card);await save(state);}
   await chrome.tabs.create({url:chrome.runtime.getURL('index.html')+'?view=card&card='+encodeURIComponent(card.id)});return;
  }
  if(message.type==='OPEN'){await chrome.tabs.create({url:chrome.runtime.getURL('index.html')});return;}
@@ -96,7 +96,7 @@ async function handle(message:any,content:boolean){
   await save(state);await sync(state,entry.cardId);return state;
  }
  case 'DISCARD_SYNC':for(const ledger of Object.values(state.ledgers)){if(ledger.error){ledger.discarded=true;delete ledger.error;}}await save(state);return state;
- case 'SORT':if(!['default','time-desc','time-asc','recent','oldest'].includes(message.order))throw Error('Orden de tarjetas inválido.');state.cardSort=message.order;await save(state);return state;
+ case 'SORT':if(!['default','time-desc','time-asc','recent','oldest','cover-priority'].includes(message.order))throw Error('Orden de tarjetas inválido.');state.cardSort=message.order;await save(state);return state;
  case 'FILTER':if(!['active','archived','all'].includes(message.status))throw Error('Filtro de tarjetas inválido.');state.cardStatus=message.status;await save(state);return state;
  case 'CARD_STATE':return cardPanelState(state,message.cardId);
  case 'CONNECT':{
@@ -110,7 +110,7 @@ async function handle(message:any,content:boolean){
  case 'DISCONNECT':if(state.session)throw Error('Terminá o descartá la sesión primero.');await chrome.storage.local.remove('credentials');state.connected=false;state.credentialsStored=false;await save(state);return state;
  case 'REFRESH':{
   state.boards=await api('members/me/boards?filter=all&fields=id,name,closed');
-  state.cards=[];for(const board of state.boards){const cards=await api(`boards/${board.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed`);state.cards.push(...cards);}state.cards=[...new Map(state.cards.map(c=>[c.id,c])).values()];
+  state.cards=[];for(const board of state.boards){const cards=await api(`boards/${board.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed,cover`);state.cards.push(...cards);}state.cards=[...new Map(state.cards.map(c=>[c.id,c])).values()];
   state.lists=[];
   for(const id of new Set(state.cards.map(c=>c.idBoard).filter(Boolean))){
    const lists=await api(`boards/${id}/lists?filter=all&fields=id,name,idBoard,closed`);
@@ -120,7 +120,7 @@ async function handle(message:any,content:boolean){
  }
  case 'BOARD':{
   if(!/^[a-f0-9]{24}$/.test(message.id))throw Error('Tablero inválido.');
-  const cards=await api(`boards/${message.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed`);
+  const cards=await api(`boards/${message.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed,cover`);
   state.cards=[...state.cards.filter(c=>c.idBoard!==message.id),...cards];
   const lists=await api(`boards/${message.id}/lists?filter=all&fields=id,name,idBoard,closed`);state.lists=[...state.lists.filter(l=>!lists.some((n:any)=>n.id===l.id)),...lists];await save(state);return state;
  }

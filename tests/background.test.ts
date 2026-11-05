@@ -52,7 +52,7 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  await send('REFRESH');assert.equal(db.state.cardStatus,'archived');assert.deepEqual(db.state.entries,previousEntries);
  assert.match((await send('FILTER',{status:'invalid'})).error,/inválido/);assert.equal(db.state.cardStatus,'archived');
  await send('FILTER',{status:'all'});assert.equal((await send('STATE')).data.cardStatus,'all');
- for(const order of ['time-desc','time-asc','recent','oldest','default']){await send('SORT',{order});assert.equal((await send('STATE')).data.cardSort,order);}
+ for(const order of ['time-desc','time-asc','recent','oldest','default','cover-priority']){await send('SORT',{order});assert.equal((await send('STATE')).data.cardSort,order);}
  await send('SORT',{order:'recent'});await send('REFRESH');assert.equal(db.state.cardSort,'recent');assert.deepEqual(db.state.entries,previousEntries);
  assert.match((await send('SORT',{order:'invalid'})).error,/inválido/);assert.equal(db.state.cardSort,'recent');
  db.state={...initial(),connected:true,member:{id:member,name:'Persona'}};comments=[];rejectPost=true;

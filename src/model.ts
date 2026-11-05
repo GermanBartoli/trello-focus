@@ -1,4 +1,5 @@
-export type Card = {id:string;name:string;url:string;idBoard?:string;idList?:string;idMembers?:string[];closed?:boolean;idLabels?:string[];labels?:{id:string;name:string;color?:string}[];due?:string|null;dueComplete?:boolean};
+export type CardCover = {color?:string|null;idAttachment?:string|null;scaled?:{url:string;width:number;height:number}[]};
+export type Card = {cover?:CardCover;id:string;name:string;url:string;idBoard?:string;idList?:string;idMembers?:string[];closed?:boolean;idLabels?:string[];labels?:{id:string;name:string;color?:string}[];due?:string|null;dueComplete?:boolean};
 export type Entry = {id:string;cardId:string;seconds:number;date:string;note:string;kind:'manual'|'session'};
 export type Session = {note?:string;id:string;card:Card;duration:number;remaining:number;end:number|null;startedAt?:string;review?:boolean};
 export type Ledger = {discarded?:boolean;commentId?:string;text?:string;creating?:boolean;pendingText?:string;error?:string};
@@ -25,10 +26,11 @@ export function matchesStatus(card:Card,state:State,status:CardStatus='active'){
  return status==='all'||isArchived(card,state)===(status==='archived');
 }
 
-export type CardSort = 'default'|'time-desc'|'time-asc'|'recent'|'oldest';
+export type CardSort = 'default'|'time-desc'|'time-asc'|'recent'|'oldest'|'cover-priority';
 export function sortCards(cards:Card[],entries:Entry[],order:CardSort='default'):Card[]{
  const result=[...cards];
  if(order==='default')return result;
+ if(order==='cover-priority'){const priority=(c:Card)=>c.cover?.color==='red'?0:c.cover?.color==='pink'?1:c.cover?.color==='green'?2:3;return result.sort((a,b)=>priority(a)-priority(b));}
  const totals=new Map<string,number>();const latest=new Map<string,number>();
  for(const entry of entries){
   totals.set(entry.cardId,(totals.get(entry.cardId)??0)+entry.seconds);
