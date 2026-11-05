@@ -1,10 +1,20 @@
 # Trello Focus
 
-Extensión personal de Chrome para registrar tiempo en Trello, creada con TypeScript, React, CSS, Vite y Manifest V3. Proyecto independiente, sin afiliación con Trello, Atlassian ni Pomello.
+Aplicación web y extensión de Chrome independientes para registrar tiempo en Trello, creada con TypeScript, React, CSS, Vite y Manifest V3. Proyecto independiente, sin afiliación con Trello, Atlassian ni Pomello.
+
+## Web y extensión
+
+La [web pública](https://trello-focus.pages.dev/) funciona sin instalar nada. En Configuración, cada persona conecta su cuenta con una API key de su aplicación de Trello y un token autorizado. No se comparte la cuenta del creador. La extensión sigue funcionando por sí sola; es necesaria para el panel flotante dentro de trello.com.
+
+Ambas versiones usan el mismo motor de sesiones y sincronización de comentarios. La extensión conserva `chrome.storage.local`; la web guarda credenciales e historial en el almacenamiento local de su propio origen HTTPS. No se transfieren automáticamente los registros entre web, extensión o equipos. Evitar registrar simultáneamente la misma tarjeta desde ambas versiones. Exportar el historial antes de borrar datos del navegador. Cloudflare sirve archivos estáticos: las llamadas autorizadas salen del navegador directamente a Trello.
+
+En la web, mantener la pestaña abierta para finalizar sesiones y recibir notificaciones. Al volver después de un cierre o suspensión, se recupera el estado y se solicita revisar sesiones vencidas tardíamente. Las operaciones entre pestañas se coordinan mediante Web Locks; no se usa una cuenta ni base de datos compartida.
+
+[Descargar extensión desde Drive](https://drive.google.com/file/d/1gNWoGinlIz_HbLXOXAYhd9saWO1osRE4/view?usp=sharing).
 
 ## Instalación
 
-1. Descargar `trello-focus-v0.2.0.zip` desde Releases y descomprimirlo en una carpeta permanente.
+1. Descargar el ZIP de la última versión desde Releases y descomprimirlo en una carpeta permanente.
 2. Abrir `chrome://extensions`, activar **Modo desarrollador** y elegir **Cargar descomprimida**. Seleccionar la carpeta que contiene `manifest.json`.
 3. Abrir el icono de Trello Focus y pulsar **Abrir mi panel** → **Configuración**.
 4. Crear una aplicación propia en <https://trello.com/apps/admin>, obtener su API key, ingresarla y pulsar **Abrir autorización de Trello**. Autorizar lectura y escritura durante 30 días, copiar el token mostrado por Trello e ingresarlo en la extensión. El token de Pomello no funciona en esta integración.
@@ -54,13 +64,13 @@ npm test
 npm run dev
 ```
 
-`npm run dev` muestra el diseño sin credenciales ni acciones contra Trello. Para probar la integración real cargar `dist` como extensión. La compilación produce el panel React, un service worker y un script de contenido independientes. Todas las dependencias de ejecución quedan empaquetadas; no se carga código remoto.
+`npm run dev` ejecuta la aplicación web real. Para probar la extensión cargar `dist` en Chrome. La compilación produce el panel React, un service worker y un script de contenido independientes. Todas las dependencias de ejecución quedan empaquetadas; no se carga código remoto.
 
 ## Verificaciones
 
 Las pruebas automatizadas cubren duración, pausa, validación, deduplicación, actualización del mismo comentario, reintentos de red, creación incierta, conflictos de edición, sesión única y control de mensajes desde Trello. Usan la lógica real y el worker compilado con API/Chrome simulados; no sustituyen una prueba con cuenta real autorizada.
 
-El flujo de GitHub Actions compila, ejecuta pruebas y adjunta la carpeta instalable en cada push. El panel es una página interna de la extensión, por lo que no requiere despliegue en Cloudflare.
+El flujo de GitHub Actions compila, ejecuta pruebas y adjunta la carpeta instalable en cada push. La web se compila con `npm run build:web` en `dist-web`; Cloudflare Pages publica esta carpeta al recibir cambios en `main`.
 
 ## Historial y navegación
 

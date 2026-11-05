@@ -3,3 +3,5 @@ dist/
 release/
 *.local
 .env*
+
+dist-web/
