@@ -1,3 +1,4 @@
+import {cardTools,CARD_TOOLS,textValue} from './cardTools';
 import {initial,remaining,elapsed,validateSeconds,addEntry,comment,cardPanelState,type State,type Card} from './model';
 class TrelloError extends Error { constructor(public status:number){super(`Trello respondió HTTP ${status}.`);} }
 type Credentials={key:string;token:string};
@@ -8,9 +9,9 @@ const save=async(state:State)=>chrome.storage.local.set({state});
 async function api(path:string,method='GET',body?:object,credentials?:Credentials){
  const c=credentials ?? (await chrome.storage.local.get('credentials')).credentials;
  if(!c)throw Error('Conectá tu cuenta de Trello desde Configuración.');
- const response=await fetch(`https://api.trello.com/1/${path}`,{method,headers:{Authorization:`OAuth oauth_consumer_key="${c.key}", oauth_token="${c.token}"`,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(20000)});
+ const response=await fetch(`https://api.trello.com/1/${path}`,{method,headers:{Authorization:`OAuth oauth_consumer_key="${c.key}", oauth_token="${c.token}"`,...(body instanceof FormData?{}:{'Content-Type':'application/json'})},body:body instanceof FormData?body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(20000)});
  if(!response.ok)throw new TrelloError(response.status);
- return response.json();
+ return response.status===204?{}:response.json();
 }
 async function sync(state:State,cardId:string){
  const ledger=state.ledgers[cardId]??={};if(ledger.discarded)return;let operation='leer el comentario guardado';
@@ -45,7 +46,7 @@ async function settle(state:State){
  const s=state.session;if(!s?.end||s.end>Date.now())return;
  // Un vencimiento tardío requiere confirmar el tiempo después de suspensión/cierre.
  if(Date.now()-s.end>90000){s.review=true;s.remaining=0;s.end=null;await save(state);await alarm(state);return;}
- addEntry(state,{id:s.id,cardId:s.card.id,seconds:s.duration,date:new Date(s.end).toISOString(),note:'',kind:'session'});
+ addEntry(state,{id:s.id,cardId:s.card.id,seconds:s.duration,date:new Date(s.end).toISOString(),note:s.note??'',kind:'session'});
  delete state.session;await save(state);await alarm(state);await sync(state,s.card.id);
  if(state.notifications)chrome.notifications.create({type:'basic',iconUrl:'icon.png',title:'Sesión completada',message:`Registraste ${formatMinutes(s.duration)} en ${s.card.name}`},()=>{void chrome.runtime.lastError;});
 }
@@ -61,9 +62,29 @@ async function handle(message:any,content:boolean){
  if(message.type==='OPEN'){await chrome.tabs.create({url:chrome.runtime.getURL('index.html')});return;}
  if(content&&!['START','ADD','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type))throw Error('Operación no permitida.');
  const state=await load();if(message.type!=='DISCARD_SYNC')await settle(state);
+ if(CARD_TOOLS.includes(message.type)){
+  if(!['CARD_COMMENT','CARD_ATTACHMENT','CARD_STICKER'].includes(message.type))return cardTools(message,state,api,save);
+  if(typeof message.requestId!=='string'||!/^[a-zA-Z0-9-]{8,100}$/.test(message.requestId))throw Error('Identificador de operación inválido.');
+  const key=message.type+':'+message.cardId+':'+message.requestId;
+  const receipts=(await chrome.storage.local.get('receipts')).receipts??{};
+  if(receipts[key]?.done)return receipts[key].result;
+  if(receipts[key])throw Error('El envío anterior no pudo confirmarse. Revisá la tarjeta en Trello antes de volver a publicarlo.');
+  receipts[key]={pending:true};await chrome.storage.local.set({receipts});
+  let attempted=false;
+  try{const result=await cardTools(message,state,async(path,method,body)=>{if(method==='POST')attempted=true;return api(path,method,body);},save);receipts[key]={done:true,result};await chrome.storage.local.set({receipts});return result;}
+  catch(error){if(!attempted||(error instanceof TrelloError&&error.status>=400&&error.status<500&&error.status!==408)){delete receipts[key];await chrome.storage.local.set({receipts});}throw error;}
+ }
  if(content&&['PAUSE','RESUME','FINISH','CANCEL'].includes(message.type)&&!cardPanelState(state,message.cardId).sameCard)throw Error('La sesión activa pertenece a otra tarjeta.');
  switch(message.type){
  case 'STATE':return state;
+ case 'FOCUS_NOTE_SAVE':{
+  if(typeof message.cardId!=='string'||!/^[a-zA-Z0-9]{8,24}$/.test(message.cardId)||typeof message.id!=='string'||message.id.length>100)throw Error('Nota inválida.');
+  const text=textValue(message.text,2000);const notes=state.focusNotes??=[];const existing=notes.find(n=>n.id===message.id);
+  if(existing&&existing.cardId!==message.cardId)throw Error('La nota pertenece a otra tarjeta.');
+  if(existing)existing.text=text;else notes.push({id:message.id,cardId:message.cardId,text,date:new Date().toISOString()});
+  await save(state);await sync(state,message.cardId);return state;
+ }
+ case 'SESSION_NOTE':if(state.session){state.session.note=String(message.note??'').slice(0,200);await save(state);await sync(state,state.session.card.id);}return state;
  case 'EDIT_ENTRY':case 'DELETE_ENTRY':{
   const entry=state.entries.find(e=>e.id===message.id);
   if(!entry)throw Error('El registro ya no existe. Actualizá el panel.');
@@ -112,14 +133,14 @@ async function handle(message:any,content:boolean){
   const card:Card=state.cards.find(c=>c.id===message.cardId||c.url.split("/")[4]===message.cardId) ?? await api(`cards/${message.cardId}?fields=id,name,url,idBoard,idList,idMembers`);
   if(!state.cards.some(c=>c.id===card.id))state.cards.push(card);
   if(state.ledgers[card.id]?.discarded)state.ledgers[card.id]={};
-  if(message.type==='START'){state.session={id:crypto.randomUUID(),card,duration:state.minutes*60,remaining:state.minutes*60,end:Date.now()+state.minutes*60000,startedAt:new Date().toISOString()};await save(state);await alarm(state);await sync(state,card.id);}
+  if(message.type==='START'){state.session={id:crypto.randomUUID(),card,note:String(message.note??'').slice(0,200),duration:state.minutes*60,remaining:state.minutes*60,end:Date.now()+state.minutes*60000,startedAt:new Date().toISOString()};await save(state);await alarm(state);await sync(state,card.id);}
   else {const seconds=validateSeconds(message.seconds);if(typeof message.id!=='string'||message.id.length>100)throw Error('Registro inválido.');addEntry(state,{id:message.id,cardId:card.id,seconds,date:new Date().toISOString(),note:String(message.note??'').slice(0,200),kind:'manual'});await save(state);await sync(state,card.id);}
   return state;
  }
  case 'PAUSE':if(state.session){state.session.remaining=remaining(state.session);state.session.end=null;await save(state);await alarm(state);await sync(state,state.session.card.id);}return state;
  case 'RESUME':if(state.session&&!state.session.review){state.session.end=Date.now()+state.session.remaining*1000;await save(state);await alarm(state);await sync(state,state.session.card.id);}return state;
  case 'FINISH':{
-  const s=state.session;if(s){const seconds=elapsed(s);if(seconds>0)addEntry(state,{id:s.id,cardId:s.card.id,seconds,date:new Date().toISOString(),note:s.review?'Sesión recuperada y confirmada':'',kind:'session'});delete state.session;await save(state);await alarm(state);await sync(state,s.card.id);}return state;
+  const s=state.session;if(s){const seconds=elapsed(s);if(seconds>0)addEntry(state,{id:s.id,cardId:s.card.id,seconds,date:new Date().toISOString(),note:s.note||(s.review?'Sesión recuperada y confirmada':''),kind:'session'});delete state.session;await save(state);await alarm(state);await sync(state,s.card.id);}return state;
  }
  case 'CANCEL':{const cardId=state.session?.card.id;delete state.session;await save(state);await alarm(state);if(cardId)await sync(state,cardId);return state;}
  case 'SYNC':for(const id of Object.keys(state.ledgers))await sync(state,id);return state;

@@ -4,7 +4,7 @@ Extensión personal de Chrome para registrar tiempo en Trello, creada con TypeSc
 
 ## Instalación
 
-1. Descargar `trello-focus-v0.1.8.zip` desde Releases y descomprimirlo en una carpeta permanente.
+1. Descargar `trello-focus-v0.2.0.zip` desde Releases y descomprimirlo en una carpeta permanente.
 2. Abrir `chrome://extensions`, activar **Modo desarrollador** y elegir **Cargar descomprimida**. Seleccionar la carpeta que contiene `manifest.json`.
 3. Abrir el icono de Trello Focus y pulsar **Abrir mi panel** → **Configuración**.
 4. Crear una aplicación propia en <https://trello.com/apps/admin>, obtener su API key, ingresarla y pulsar **Abrir autorización de Trello**. Autorizar lectura y escritura durante 30 días, copiar el token mostrado por Trello e ingresarlo en la extensión. El token de Pomello no funciona en esta integración.
@@ -71,3 +71,19 @@ El título de una tarjeta abre su detalle dentro del panel, con historial y enla
 En el panel flotante de Trello, **Ver historial de esta tarjeta** abre directamente su detalle en Trello Focus. El botón general del panel sigue disponible.
 
 El formulario flotante usa un documento aislado para evitar activar atajos de Trello al escribir. Los filtros de búsqueda, tablero, lista, asignación y favoritas se recuerdan en el mismo perfil, además del estado y orden existentes.
+
+## Comentarios, notas y edición de tarjetas
+
+- **Comentario en Trello:** publicación normal e independiente del contador de horas. Permite editar comentarios propios desde un modal.
+- **Nota de Trello Focus:** texto independiente, sin duración, dentro del mismo comentario que registra el total. Se puede editar sin sumar minutos.
+- **Mensaje de sesión o carga manual:** nota opcional junto al registro de tiempo. La nota de sesión se conserva al terminar y puede cambiarse desde el temporizador.
+
+El editor permite escribir texto normal, enlaces, negritas y bloques de código opcionales con selector de lenguaje. Envía Markdown a Trello; su representación exacta depende del editor de Trello. La vista previa local muestra enlaces, imágenes y código sin interpretar HTML.
+
+Las fotos y documentos se adjuntan inmediatamente a la tarjeta y se insertan en el borrador del comentario. Cancelar el borrador no elimina un archivo ya adjuntado. Límite de esta versión: 10 MB por archivo, sujeto a permisos y límites de Trello. Las imágenes privadas pueden requerir iniciar sesión en Trello para visualizarse.
+
+Desde el detalle se pueden editar título, descripción, lista y miembros existentes del tablero; ver y subir adjuntos; usar una imagen como portada o elegir color; agregar Taco cool o stickers personales ya disponibles en la cuenta, y quitar stickers. Trello ofrece rosa y violeta, pero no un valor de portada llamado magenta. Color e imagen son alternativas de portada. No se crean miembros ni se invita a personas al tablero.
+
+Los envíos de comentarios, adjuntos y stickers no se reintentan automáticamente. Si una respuesta se pierde, se conserva un comprobante local para impedir repetir esa misma operación; revisar la tarjeta antes de iniciar otra publicación. El historial de tiempo conserva su sincronización independiente.
+
+Referencia: [API oficial de tarjetas](https://developer.atlassian.com/cloud/trello/rest/api-group-cards/) y [formato de texto de Trello](https://support.atlassian.com/trello/docs/how-to-format-your-text-in-trello/).

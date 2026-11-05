@@ -1,0 +1,15 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Trello Focus · Prueba de edición</title><body><div id="root"></div><script>
+const cardId='a'.repeat(24),member='b'.repeat(24),board='d'.repeat(24),list='e'.repeat(24);
+const state={credentialsStored:true,connected:true,member:{id:member,name:'Usuario de prueba'},cards:[{id:cardId,name:'Preparar el lanzamiento de Trello Focus',url:'https://trello.com/c/AbCd1234',desc:'**Objetivo:** organizar el trabajo desde un solo lugar.',idBoard:board,idList:list,idMembers:[member],cover:{color:'green'}}],boards:[{id:board,name:'Proyectos personales'}],lists:[{id:list,name:'En curso'}],entries:[{id:'registro',cardId,seconds:1500,date:new Date().toISOString(),kind:'session',note:'Revisión del diseño'}],focusNotes:[],ledgers:{},favorites:[],minutes:25,notifications:true};
+const details={card:state.cards[0],members:[{id:member,fullName:'Usuario de prueba'},{id:'f'.repeat(24),fullName:'Colaborador de prueba'}],comments:[{id:'c'.repeat(24),idMemberCreator:member,date:new Date().toISOString(),data:{text:'Listo para revisar. **Primera versión**'},memberCreator:{fullName:'Usuario de prueba'}}],attachments:[],stickers:[],customStickers:[],lists:state.lists};
+window.chrome={runtime:{id:'prueba',getManifest:()=>({version:'0.2.0'}),sendMessage:async m=>{
+if(m.type==='CARD_DETAILS')return {data:structuredClone(details)};
+if(m.type==='CARD_COMMENT'){details.comments.unshift({id:crypto.randomUUID(),idMemberCreator:member,date:new Date().toISOString(),data:{text:m.text},memberCreator:{fullName:'Usuario de prueba'}});return {data:{}};}
+if(m.type==='CARD_COMMENT_EDIT'){details.comments.find(c=>c.id===m.commentId).data.text=m.text;return {data:{}};}
+if(m.type==='CARD_UPDATE'){if(m.memberId){details.card.idMembers=m.add?[...details.card.idMembers,m.memberId]:details.card.idMembers.filter(i=>i!==m.memberId);}if(m.color)details.card.cover={color:m.color};if(m.name){details.card.name=m.name;details.card.desc=m.desc;}return {data:details.card};}
+if(m.type==='CARD_ATTACHMENT'){const a={id:'9'.repeat(24),name:m.name||'Enlace de prueba',url:m.url||'http://127.0.0.1:5178/icon.png',mimeType:m.mimeType||''};details.attachments.push(a);return {data:a};}
+if(m.type==='CARD_STICKER'){details.stickers.push({id:'8'.repeat(24),image:m.image});return {data:{}};}
+if(m.type==='FOCUS_NOTE_SAVE'){const n=state.focusNotes.find(n=>n.id===m.id);if(n)n.text=m.text;else state.focusNotes.push({id:m.id,cardId,text:m.text,date:new Date().toISOString()});}
+return {data:structuredClone(state)};
+}},storage:{onChanged:{addListener:()=>{},removeListener:()=>{}}}};
+</script><script type="module" src="/src/main.tsx"></script></body></html>

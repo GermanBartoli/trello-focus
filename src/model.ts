@@ -1,8 +1,8 @@
 export type Card = {id:string;name:string;url:string;idBoard?:string;idList?:string;idMembers?:string[];closed?:boolean};
 export type Entry = {id:string;cardId:string;seconds:number;date:string;note:string;kind:'manual'|'session'};
-export type Session = {id:string;card:Card;duration:number;remaining:number;end:number|null;startedAt?:string;review?:boolean};
+export type Session = {note?:string;id:string;card:Card;duration:number;remaining:number;end:number|null;startedAt?:string;review?:boolean};
 export type Ledger = {discarded?:boolean;commentId?:string;text?:string;creating?:boolean;pendingText?:string;error?:string};
-export type State = {credentialsStored?:boolean;cardStatus?:CardStatus;cardSort?:CardSort;connected?:boolean;member?:{id:string;name:string};cards:Card[];boards:{id:string;name:string;closed?:boolean}[];lists:{id:string;name:string;idBoard?:string;closed?:boolean}[];entries:Entry[];session?:Session;ledgers:Record<string,Ledger>;favorites:string[];minutes:number;notifications:boolean};
+export type State = {focusNotes?:{id:string;cardId:string;text:string;date:string}[];credentialsStored?:boolean;cardStatus?:CardStatus;cardSort?:CardSort;connected?:boolean;member?:{id:string;name:string};cards:Card[];boards:{id:string;name:string;closed?:boolean}[];lists:{id:string;name:string;idBoard?:string;closed?:boolean}[];entries:Entry[];session?:Session;ledgers:Record<string,Ledger>;favorites:string[];minutes:number;notifications:boolean};
 export const initial = ():State => ({cardStatus:'active',cardSort:'default',cards:[],boards:[],lists:[],entries:[],ledgers:{},favorites:[],minutes:25,notifications:true});
 export const remaining = (s:Session,now=Date.now()) => s.end === null ? s.remaining : Math.max(0,Math.ceil((s.end-now)/1000));
 export const elapsed = (s:Session,now=Date.now()) => Math.max(0,s.duration-remaining(s,now));
@@ -13,8 +13,8 @@ export function comment(state:State,cardId:string){
  const entries=state.entries.filter(e=>e.cardId===cardId);const total=entries.reduce((s,e)=>s+e.seconds,0);
  const lines=entries.slice(-60).reverse().map(e=>`• ${new Date(e.date).toLocaleString('es-AR')} · ${format(e.seconds)} · ${e.kind==='session'?'Sesión':'Carga manual'}${e.note ? ` · ${e.note.replace(/[\r\n]/g,' ').replace(/[*_`<>]/g,'')}`:''}`);
  const session=state.session?.card.id===cardId?state.session:undefined;
- const sessionText=session?`\n\n**Sesión ${session.review?'pendiente de confirmar':session.end?'en curso':'en pausa'}** · ${format(session.duration)} previstos. El tiempo se suma al terminar.${session.startedAt?` Inicio: ${new Date(session.startedAt).toLocaleString('es-AR')}`:''}`:' ';
- return `**Trello Focus**\n\n## Total acumulado: ${format(total)}${sessionText}\n\n${lines.join('\n')}\n\nRegistro administrado por Trello Focus. Historial completo disponible en la extensión.\n\nTF:v1:${state.member?.id}:${cardId}`;
+ const sessionText=session?`\n\n**Sesión ${session.review?'pendiente de confirmar':session.end?'en curso':'en pausa'}** · ${format(session.duration)} previstos. El tiempo se suma al terminar.${session.startedAt?` Inicio: ${new Date(session.startedAt).toLocaleString('es-AR')}`:''}${session.note?'\n'+session.note.replace(/[\r\n]/g,' '):''}`:' ';
+ return `**Trello Focus**\n\n## Total acumulado: ${format(total)}${sessionText}\n\n${lines.join('\n')}${(state.focusNotes??[]).filter(n=>n.cardId===cardId).map(n=>'\n\n'+n.text).join('')}\n\nRegistro administrado por Trello Focus. Historial completo disponible en la extensión.\n\nTF:v1:${state.member?.id}:${cardId}`;
 }
 
 export type CardStatus = 'active'|'archived'|'all';

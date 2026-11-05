@@ -78,5 +78,14 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  assert.equal((await send('CARD_STATE',{cardId:'AbCd1234'},source)).data.syncDiscarded,true);
  comments=[];await send('ADD',{cardId,seconds:60,id:'despues-descartar'});assert.equal(comments.length,1);assert.equal(db.state.ledgers[cardId].discarded,undefined);assert.equal(db.state.entries.length,beforeDiscard.length+1);
  assert.match((await send('DISCARD_SYNC',{},source)).error,/permitida/);
+ const entriesBeforeNotes=db.state.entries.length;
+ await send('FOCUS_NOTE_SAVE',{cardId,id:'nota-prueba',text:'Una nota sin minutos'});assert.equal(db.state.entries.length,entriesBeforeNotes);assert.match(comments[0].data.text,/Una nota sin minutos/);
+ await send('FOCUS_NOTE_SAVE',{cardId,id:'nota-prueba',text:'Nota editada'});assert.equal(db.state.focusNotes.length,1);assert.match(comments[0].data.text,/Nota editada/);
+ assert.match((await send('FOCUS_NOTE_SAVE',{cardId,id:'otro',text:'No'},source)).error,/permitida/);
+ await send('START',{cardId,note:'Revisión de código'});assert.match(comments[0].data.text,/Revisión de código/);db.state.session.end=Date.now()-100;await send('STATE');assert.equal(db.state.entries.at(-1).note,'Revisión de código');
+ const countComments=comments.length;const normal={cardId,requestId:'comentario-prueba',text:'Comentario normal'};
+ await send('CARD_COMMENT',normal);await send('CARD_COMMENT',normal);assert.equal(comments.length,countComments+1);
+ failPost=true;await send('CARD_COMMENT',{...normal,requestId:'comentario-incierto'});const uncertainCount=comments.length;failPost=false;assert.match((await send('CARD_COMMENT',{...normal,requestId:'comentario-incierto'})).error,/no pudo confirmarse/);assert.equal(comments.length,uncertainCount);
+ assert.match((await send('CARD_COMMENT',normal,source)).error,/permitida/);
  await send('DISCONNECT');assert.equal(db.credentials,undefined);assert.equal(db.state.connected,false);assert.equal((await send('STATE')).data.credentialsStored,false);
 });
