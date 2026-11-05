@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initial,type Entry} from '../src/model.ts';
+import {weeklyStats} from '../src/weeklyStats.ts';
+const entry=(date:string,seconds:number,kind:Entry['kind']='session'):Entry=>({id:date,cardId:'tarjeta',seconds,kind,date,note:''});
+test('Semana local desde lunes, totales exactos y comparación independiente',()=>{const s=initial();s.entries=[entry('2026-11-01T23:59:59',600),entry('2026-11-02T00:00:00',3600),entry('2026-11-04T10:00:00',1800,'manual'),entry('2026-11-05T10:00:00',900),entry('inválida',500)];const d=weeklyStats(s,0,new Date('2026-11-04T12:00:00'));assert.equal(d.total,5400);assert.equal(d.previousTotal,600);assert.equal(d.average,1800);assert.equal(d.sessions,1);assert.equal(d.sessionSeconds,3600);assert.equal(d.activeDays,2);assert.equal(d.days[0].seconds,3600);assert.equal(d.cards[0].seconds,5400);assert.equal(d.boards[0].name,'Sin tablero disponible');});
+test('Semana anterior, tarjetas archivadas y edición del historial',()=>{const s=initial();s.cards=[{id:'tarjeta',name:'Archivada',url:'',closed:true,idBoard:'tablero'}];s.boards=[{id:'tablero',name:'Proyecto'}];s.entries=[entry('2026-10-27T10:00:00',700)];const now=new Date('2026-11-04T12:00:00');assert.equal(weeklyStats(s,-1,now).average,100);assert.equal(weeklyStats(s,-1,now).boards[0].name,'Proyecto');s.entries[0].seconds=1400;assert.equal(weeklyStats(s,-1,now).total,1400);s.entries=[];assert.equal(weeklyStats(s,-1,now).total,0);assert.equal(weeklyStats(s,-1,now).cards.length,0);});

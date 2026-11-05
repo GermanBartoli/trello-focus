@@ -93,3 +93,9 @@ Referencia: [API oficial de tarjetas](https://developer.atlassian.com/cloud/trel
 Los filtros de persona, etiqueta, vencimiento y finalización se combinan con tablero, lista, búsqueda, estado y orden. Se recuerdan al recargar en el mismo perfil. Elegir una persona desactiva «Asignadas a mí». Actualizar todos los tableros carga también tarjetas de otros miembros; puede tardar más en cuentas con muchos tableros.
 
 «Crear tarjeta» permite elegir tablero y lista activa, título, descripción Markdown, miembros, etiquetas y vencimiento opcional. Al crearla abre su detalle. Valida que la lista y las selecciones pertenezcan al tablero y protege el mismo envío contra duplicados.
+
+## Estadísticas
+
+La sección Estadísticas muestra cuatro gráficos: tiempo diario de la semana, cinco tarjetas con más dedicación, distribución por tablero y sesiones frente a cargas manuales. Incluye tiempo total, promedio diario, días activos, sesiones guardadas y comparación con la semana anterior completa. Permite recorrer semanas y abrir el historial desde el ranking.
+
+Se calcula a partir del historial local, sin servicios externos ni dependencias nuevas. Incluye tarjetas archivadas y registros de tarjetas que ya no están cargadas. Usa la fecha local de cada registro; las sesiones en curso y las fechas futuras no se contabilizan. El promedio actual incluye los días transcurridos, incluido hoy; en semanas anteriores divide por siete. Editar o eliminar registros actualiza las cifras.
