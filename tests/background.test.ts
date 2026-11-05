@@ -28,6 +28,9 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  await send('ADD',{cardId,seconds:600,id:'uno'});await send('ADD',{cardId,seconds:900,id:'dos'});await send('ADD',{cardId,seconds:900,id:'dos'});
  assert.equal(comments.length,1);assert.match(comments[0].data.text,/25 min/);assert.equal(db.state.entries.length,2);
 
+ await send('SETTINGS',{minutes:25,manualMinutes:90,notifications:true});assert.equal((await send('STATE')).data.manualMinutes,90);assert.equal((await send('CARD_STATE',{cardId})).data.manualMinutes,90);
+ for(const manualMinutes of [0,-1,1441,1.5,'30']){assert.match((await send('SETTINGS',{minutes:25,manualMinutes})).error,/manual predeterminado/);assert.equal(db.state.manualMinutes,90);}
+ await send('SETTINGS',{minutes:30,notifications:true});assert.equal(db.state.manualMinutes,90);await send('SETTINGS',{minutes:25,manualMinutes:15,notifications:true});
  const originalDate=db.state.entries[0].date;
  await send('EDIT_ENTRY',{id:'uno',seconds:125,note:'Tiempo corregido'});assert.equal(db.state.entries[0].seconds,125);assert.equal(db.state.entries[0].date,originalDate);assert.match(comments[0].data.text,/Tiempo corregido/);assert.equal(comments.length,1);
  assert.match((await send('EDIT_ENTRY',{id:'uno',seconds:0,note:''})).error,/tiempo/);assert.equal(db.state.entries[0].seconds,125);

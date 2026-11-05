@@ -8,6 +8,7 @@ state.ledgers[cardId]={error:'Hay un registro previo de 30 minutos pendiente de 
 window.chrome={runtime:{id:'prueba',getManifest:()=>({version:'0.2.0'}),sendMessage:async m=>{
 if(m.type==='REFRESH'){for(const [i,c] of state.cards.entries())c.cover={color:['green','pink','red'][i]};}
 if(m.type==='SYNC'){delete state.ledgers[cardId].error;}
+if(m.type==='SETTINGS'){state.manualMinutes=m.manualMinutes;state.minutes=m.minutes;state.notifications=m.notifications;}
 if(m.type==='SORT')state.cardSort=m.order;
 if(m.type==='BOARD_OPTIONS')return {data:{lists:state.lists,members:details.members,labels:[{id:'7'.repeat(24),name:'Urgente',color:'red'}]}};
 if(m.type==='CARD_CREATE'){const card={id:'6'.repeat(24),name:m.name,desc:m.desc,idBoard:board,idList:m.listId,idMembers:m.members,url:'https://trello.com/c/Test1234'};state.cards.push(card);details.card=card;return {data:card};}

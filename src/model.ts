@@ -3,8 +3,8 @@ export type Card = {cover?:CardCover;id:string;name:string;url:string;idBoard?:s
 export type Entry = {id:string;cardId:string;seconds:number;date:string;note:string;kind:'manual'|'session'};
 export type Session = {note?:string;id:string;card:Card;duration:number;remaining:number;end:number|null;startedAt?:string;review?:boolean};
 export type Ledger = {discarded?:boolean;commentId?:string;text?:string;creating?:boolean;pendingText?:string;error?:string};
-export type State = {focusNotes?:{id:string;cardId:string;text:string;date:string}[];credentialsStored?:boolean;cardStatus?:CardStatus;cardSort?:CardSort;connected?:boolean;member?:{id:string;name:string};cards:Card[];boards:{id:string;name:string;closed?:boolean}[];lists:{id:string;name:string;idBoard?:string;closed?:boolean}[];entries:Entry[];session?:Session;ledgers:Record<string,Ledger>;favorites:string[];minutes:number;notifications:boolean};
-export const initial = ():State => ({cardStatus:'active',cardSort:'default',cards:[],boards:[],lists:[],entries:[],ledgers:{},favorites:[],minutes:25,notifications:true});
+export type State = {focusNotes?:{id:string;cardId:string;text:string;date:string}[];credentialsStored?:boolean;cardStatus?:CardStatus;cardSort?:CardSort;connected?:boolean;member?:{id:string;name:string};cards:Card[];boards:{id:string;name:string;closed?:boolean}[];lists:{id:string;name:string;idBoard?:string;closed?:boolean}[];entries:Entry[];session?:Session;ledgers:Record<string,Ledger>;favorites:string[];minutes:number;manualMinutes?:number;notifications:boolean};
+export const initial = ():State => ({cardStatus:'active',cardSort:'default',cards:[],boards:[],lists:[],entries:[],ledgers:{},favorites:[],minutes:25,manualMinutes:15,notifications:true});
 export const remaining = (s:Session,now=Date.now()) => s.end === null ? s.remaining : Math.max(0,Math.ceil((s.end-now)/1000));
 export const elapsed = (s:Session,now=Date.now()) => Math.max(0,s.duration-remaining(s,now));
 export function format(seconds:number){ const m=Math.floor(seconds/60);return m>=60?`${Math.floor(m/60)} h ${m%60} min`:`${m} min${seconds%60 ? ` ${Math.floor(seconds%60)} s`:''}`; }
@@ -51,7 +51,7 @@ export function cardPanelState(state:State,cardId:string){
  const card=state.cards.find(c=>c.id===cardId||c.url.split('/')[4]===cardId);
  const session=state.session;
  const same=!!session&&(session.card.id===cardId||session.card.url.split('/')[4]===cardId);
- return {minutes:state.minutes,connected:!!state.connected,active:!!session,sameCard:same,
+ return {minutes:state.minutes,manualMinutes:state.manualMinutes??15,connected:!!state.connected,active:!!session,sameCard:same,
   session:same?session:undefined,otherCard:session&&!same?session.card.name:undefined,
   error:card?state.ledgers[card.id]?.error:undefined,
   syncDiscarded:card?!!state.ledgers[card.id]?.discarded:false,

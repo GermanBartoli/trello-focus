@@ -1,5 +1,5 @@
 import {remaining,format,type Session} from './model';
-type PanelState={minutes:number;connected:boolean;active:boolean;sameCard:boolean;session?:Session;otherCard?:string;error?:string;syncDiscarded?:boolean;total:number};
+type PanelState={manualMinutes?:number;minutes:number;connected:boolean;active:boolean;sameCard:boolean;session?:Session;otherCard?:string;error?:string;syncDiscarded?:boolean;total:number};
 let current='';let host:HTMLIFrameElement|undefined;let cleanup=()=>{};
 function mount(){
  const id=location.pathname.match(/^\/c\/([a-zA-Z0-9]+)/)?.[1]??'';
@@ -17,9 +17,12 @@ function mount(){
  const size=new ResizeObserver(()=>{frame.style.height=root.querySelector('section')!.getBoundingClientRect().height+'px';});size.observe(root.querySelector('section')!);
  for(const event of ['pointerdown','pointerup','mousedown','mouseup','click','dblclick','touchstart','touchend','keydown','keyup','submit'])root.addEventListener(event,e=>e.stopPropagation());
  const get=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector)!;
+ let manualEdited=false;let appliedManual=-1;
+ get<HTMLFormElement>('form').addEventListener('input',()=>{manualEdited=true;});
  let data:PanelState|undefined;let busy=false;let polling=false;let alive=true;
  function render(){
   if(!data){root.querySelectorAll<HTMLButtonElement>('button').forEach(b=>b.disabled=!['open','history','close'].includes(b.id));return;}
+  const preset=data.manualMinutes??15;if(!manualEdited&&appliedManual!==preset){get<HTMLInputElement>('[name=hours]').value=String(Math.floor(preset/60));get<HTMLInputElement>('[name=minutes]').value=String(preset%60);appliedManual=preset;}
   const s=data.session;const own=data.sameCard&&!!s;
   get('#summary').textContent=own?(s.review?'Sesión pendiente de confirmar':s.end?'Sesión en curso':'Sesión en pausa'):data.otherCard?`Sesión activa en otra tarjeta: ${data.otherCard}`:'Un momento de foco para esta tarjeta.';
   const clock=get('#clock');clock.hidden=!own;

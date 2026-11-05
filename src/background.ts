@@ -129,7 +129,7 @@ async function handle(message:any,content:boolean){
   state.cards=[...state.cards.filter(c=>c.idBoard!==message.id),...cards];
   const lists=await api(`boards/${message.id}/lists?filter=all&fields=id,name,idBoard,closed`);state.lists=[...state.lists.filter(l=>!lists.some((n:any)=>n.id===l.id)),...lists];await save(state);return state;
  }
- case 'SETTINGS':state.minutes=Math.min(180,Math.max(1,Math.round(Number(message.minutes)||25)));state.notifications=!!message.notifications;await save(state);return state;
+ case 'SETTINGS':if(message.manualMinutes!==undefined){if(!Number.isInteger(message.manualMinutes)||message.manualMinutes<1||message.manualMinutes>1440)throw Error('El tiempo manual predeterminado debe estar entre 1 minuto y 24 horas.');state.manualMinutes=message.manualMinutes;}state.minutes=Math.min(180,Math.max(1,Math.round(Number(message.minutes)||25)));state.notifications=!!message.notifications;await save(state);return state;
  case 'FAVORITE':state.favorites=state.favorites.includes(message.id)?state.favorites.filter(id=>id!==message.id):[...state.favorites,message.id];await save(state);return state;
  case 'ADD':case 'START':{
   if(!state.connected)throw Error('Conectá Trello desde el panel de la extensión.');

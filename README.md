@@ -111,3 +111,7 @@ Si hay tarjetas guardadas por una versión anterior sin datos de portada, al mos
 Reintentar sincronización puede recuperar un comentario previo de Trello Focus cuando el perfil perdió su asociación con él. Verifica autor, tarjeta, formato y total; incorpora registros faltantes, conserva los locales y actualiza el mismo comentario. Antes de unir guarda una copia local de recuperación. Los reintentos no vuelven a sumar registros.
 
 Los comentarios antiguos con historial truncado, notas generales, sesiones abiertas, cambios externos o fechas ambiguas no se sobrescriben automáticamente. En esos casos se informa el bloqueo para revisarlos sin perder datos. La recuperación no sustituye una copia de seguridad ni sincroniza todos los perfiles.
+
+## Tiempo manual predeterminado
+
+Configuración → Tu ritmo de trabajo permite guardar horas y minutos para nuevas cargas manuales (entre 1 minuto y 24 horas). Se conserva en el perfil y se aplica al modal del panel y al formulario flotante de Trello. Los perfiles anteriores comienzan en 15 minutos. Cambiar una carga individual no modifica esta preferencia; el panel flotante no pisa valores que ya estés escribiendo.
