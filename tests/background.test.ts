@@ -46,7 +46,7 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  db.state={...initial(),connected:true,member:{id:member,name:'Persona'}};comments=[];failPost=true;
  await send('ADD',{cardId,seconds:60,id:'incierta'});assert.equal(comments.length,1);failPost=false;await send('SYNC');assert.equal(comments.length,1);assert.equal(db.state.ledgers[cardId].commentId,'comentario');
  const previousEntries=structuredClone(db.state.entries);
- await send('REFRESH');assert.equal(db.state.cards.length,2);assert.equal(db.state.cards[1].closed,true);assert.equal(db.state.lists[0].closed,true);
+ await send('REFRESH');assert.equal(db.state.cards.length,2);assert.ok(db.state.cards.every((c:any)=>Object.hasOwn(c,'cover')));assert.equal(db.state.cards[1].closed,true);assert.equal(db.state.lists[0].closed,true);
  await send('BOARD',{id:'d'.repeat(24)});assert.equal(db.state.cards.find((c:any)=>c.id==='archivada').closed,true);
  await send('FILTER',{status:'archived'});assert.equal((await send('STATE')).data.cardStatus,'archived');
  await send('REFRESH');assert.equal(db.state.cardStatus,'archived');assert.deepEqual(db.state.entries,previousEntries);

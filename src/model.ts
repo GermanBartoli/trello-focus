@@ -76,3 +76,5 @@ export function matchesExtra(card:Card,filters:ExtraFilters,now=new Date()){
  if(filters.due==='tomorrow')start.setDate(start.getDate()+1);
  return date>=start&&date<end;
 }
+
+export function needsCoverRefresh(state:State){return !!state.connected&&state.cards.some(card=>!Object.prototype.hasOwnProperty.call(card,'cover'));}

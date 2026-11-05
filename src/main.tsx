@@ -1,9 +1,9 @@
 import {CardCover} from './CardCover';
 import {Statistics} from './Statistics';
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {send,extension} from './bridge';
-import {initial,format,remaining,matchesExtra,sortCards,isArchived,matchesStatus,type CardStatus,type State,type Card} from './model';
+import {initial,format,remaining,needsCoverRefresh,matchesExtra,sortCards,isArchived,matchesStatus,type CardStatus,type State,type Card} from './model';
 import './style.css';
 import {EntryHistory} from './EntryHistory';
 import {CardWorkspace} from './CardWorkspace';
@@ -21,6 +21,8 @@ function App(){
 
  function navigate(view:string,cardId=''){const url=new URL(location.href);url.searchParams.set('view',view);if(cardId)url.searchParams.set('card',cardId);else url.searchParams.delete('card');if(url.href!==location.href)history.pushState(null,'',url);setRoute(readRoute());setManual(undefined);setStarting(undefined);setError('');window.scrollTo(0,0);}
  useEffect(()=>{const onPop=()=>{setRoute(readRoute());setManual(undefined);setError('');};window.addEventListener('popstate',onPop);return()=>window.removeEventListener('popstate',onPop);},[]);
+ const coverRefreshAttempted=useRef(false);
+ useEffect(()=>{if(view!=='cards'||(!showCover&&state.cardSort!=='cover-priority')||!needsCoverRefresh(state)||coverRefreshAttempted.current)return;coverRefreshAttempted.current=true;void act('REFRESH');},[view,showCover,state.connected,state.cards,state.cardSort]);
  const detailCard=state.cards.find(c=>c.id===cardId);const cardEntries=state.entries.filter(e=>e.cardId===cardId);
  async function act(type:string,fields:object={}){setBusy(true);setError('');try{const result=await send(type,fields);if(result)setState(result);return true;}catch(e){setError(e instanceof Error?e.message:'No se pudo completar.');return false;}finally{setBusy(false);}}
  useEffect(()=>{void act('STATE');const tick=setInterval(()=>setNow(Date.now()),1000);const listener=(changes:{[key:string]:chrome.storage.StorageChange})=>{if(changes.state)setState(changes.state.newValue);};if(extension)chrome.storage.onChanged.addListener(listener);return()=>{clearInterval(tick);if(extension)chrome.storage.onChanged.removeListener(listener);};},[]);

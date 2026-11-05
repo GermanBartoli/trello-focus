@@ -103,3 +103,5 @@ Se calcula a partir del historial local, sin servicios externos ni dependencias 
 ## Portadas y prioridad visual
 
 En Mis tarjetas, «Mostrar portada» permite ver una mini portada de color o imagen arriba, a todo el ancho. Está desactivado inicialmente y recuerda la preferencia. «Prioridad: rojo → rosa → verde» ordena primero esos colores; los demás colores, imágenes y tarjetas sin portada quedan después, conservando su orden relativo. El orden se guarda y funciona aunque las portadas estén ocultas. Usá Actualizar tarjetas para cargar los cambios de portada realizados en Trello.
+
+Si hay tarjetas guardadas por una versión anterior sin datos de portada, al mostrarlas o elegir el orden por color el panel las actualiza automáticamente una vez por apertura. La carga conserva el historial y las preferencias. Si falla la conexión, se puede reintentar con Actualizar tarjetas.

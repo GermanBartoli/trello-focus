@@ -110,7 +110,7 @@ async function handle(message:any,content:boolean){
  case 'DISCONNECT':if(state.session)throw Error('Terminá o descartá la sesión primero.');await chrome.storage.local.remove('credentials');state.connected=false;state.credentialsStored=false;await save(state);return state;
  case 'REFRESH':{
   state.boards=await api('members/me/boards?filter=all&fields=id,name,closed');
-  state.cards=[];for(const board of state.boards){const cards=await api(`boards/${board.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed,cover`);state.cards.push(...cards);}state.cards=[...new Map(state.cards.map(c=>[c.id,c])).values()];
+  state.cards=[];for(const board of state.boards){const cards=await api(`boards/${board.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed,cover`);state.cards.push(...cards.map((card:Card)=>({...card,cover:card.cover??{}})));}state.cards=[...new Map(state.cards.map(c=>[c.id,c])).values()];
   state.lists=[];
   for(const id of new Set(state.cards.map(c=>c.idBoard).filter(Boolean))){
    const lists=await api(`boards/${id}/lists?filter=all&fields=id,name,idBoard,closed`);

@@ -60,3 +60,7 @@ test('Prioridad de portada ordena rojo, rosa y verde antes del resto y conserva 
  const cards=[{id:'sin',name:'Sin',url:''},{id:'verde',name:'Normal',url:'',cover:{color:'green'}},{id:'rosa',name:'Media',url:'',cover:{color:'pink'}},{id:'roja',name:'Alta',url:'',cover:{color:'red'}},{id:'otra',name:'Otro',url:'',cover:{color:'blue'}},{id:'roja2',name:'Alta 2',url:'',cover:{color:'red'}}];
  assert.deepEqual(sortCards(cards,[],'cover-priority').map(c=>c.id),['roja','roja2','rosa','verde','sin','otra']);assert.equal(cards[0].id,'sin');
 });
+
+test('Detecta caché antiguo aunque una tarjeta ya tenga portada y distingue ausencia confirmada',async()=>{
+ const {needsCoverRefresh}=await import('../src/model.ts');const s=initial();s.connected=true;s.cards=[{id:'uno',name:'Vista',url:'',cover:{color:'green'}},{id:'dos',name:'Antigua',url:''}];assert.equal(needsCoverRefresh(s),true);s.cards[1].cover={};assert.equal(needsCoverRefresh(s),false);s.cards[1].cover={color:'red'};assert.equal(needsCoverRefresh(s),false);delete s.cards[1].cover;s.connected=false;assert.equal(needsCoverRefresh(s),false);
+});
