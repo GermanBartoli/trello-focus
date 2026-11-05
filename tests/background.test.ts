@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initial} from '../src/model.ts';
+import {initial,comment} from '../src/model.ts';
 test('Flujo real del worker compilado: comentario único, reintentos, sesión y permisos',async()=>{
  const opened:string[]=[];let tabUrl='https://trello.com/';const db:any={};let listener:any;const alarmListeners:any[]=[];let requests:any[]=[];let comments:any[]=[];let failPut=false;let failPost=false;let rejectPost=false;
  const member='a'.repeat(24),cardId='b'.repeat(24),card={id:cardId,name:'Tarjeta de prueba',url:'https://trello.com/c/AbCd1234/prueba',idMembers:[member]};
@@ -87,5 +87,12 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  await send('CARD_COMMENT',normal);await send('CARD_COMMENT',normal);assert.equal(comments.length,countComments+1);
  failPost=true;await send('CARD_COMMENT',{...normal,requestId:'comentario-incierto'});const uncertainCount=comments.length;failPost=false;assert.match((await send('CARD_COMMENT',{...normal,requestId:'comentario-incierto'})).error,/no pudo confirmarse/);assert.equal(comments.length,uncertainCount);
  assert.match((await send('CARD_COMMENT',normal,source)).error,/permitida/);
+
+ // Reproducir 30 minutos en Trello y solamente 10 en el perfil local.
+ const remoteState={...initial(),member:{id:member,name:'Persona'},entries:[{id:'remoto',cardId,seconds:1800,date:new Date(2026,10,4,2,5,36).toISOString(),kind:'manual' as const,note:''}]};
+ comments=[{id:'comentario',idMemberCreator:member,data:{text:comment(remoteState,cardId)}}];
+ db.state={...initial(),connected:true,member:remoteState.member,cards:[card],entries:[{id:'local',cardId,seconds:600,date:new Date(2026,10,5,8,33,9).toISOString(),kind:'manual',note:''}],ledgers:{[cardId]:{error:'Registro previo'}}};
+ failPut=true;await send('SYNC');assert.equal(db.state.entries.length,2);assert.ok(db.state.ledgers[cardId].error);assert.equal(comments.length,1);assert.equal(db.recoveryBackup.state.entries.length,1);
+ failPut=false;await send('SYNC');await send('SYNC');assert.equal(db.state.entries.reduce((s:number,e:any)=>s+e.seconds,0),2400);assert.equal(db.state.entries.length,2);assert.equal(comments.length,1);assert.match(comments[0].data.text,/Total acumulado: 40 min/);assert.equal(db.state.ledgers[cardId].error,undefined);
  await send('DISCONNECT');assert.equal(db.credentials,undefined);assert.equal(db.state.connected,false);assert.equal((await send('STATE')).data.credentialsStored,false);
 });

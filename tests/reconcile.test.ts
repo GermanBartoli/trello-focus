@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initial,comment} from '../src/model.ts';
+import {reconcileLegacy} from '../src/reconcile.ts';
+function setup(){const s=initial();s.member={id:'persona',name:'Persona'};s.entries=[{id:'viejo',cardId:'tarjeta',date:new Date(2026,10,4,2,5,36).toISOString(),seconds:1800,kind:'manual',note:''}];return s;}
+test('Recupera 30 minutos remotos y mantiene 10 locales sin duplicarlos en reintentos',()=>{const remote=setup();const action={id:'comentario',idMemberCreator:'persona',data:{text:comment(remote,'tarjeta').split('\n').map(l=>l.trimEnd()).join('\r\n')}};const local=setup();local.entries=[{...local.entries[0],id:'nuevo',date:new Date(2026,10,5,8,33,9).toISOString(),seconds:600}];assert.equal(reconcileLegacy(local,'tarjeta',action),1);assert.equal(local.entries.reduce((n,e)=>n+e.seconds,0),2400);assert.equal(reconcileLegacy(local,'tarjeta',action),0);assert.equal(local.entries.length,2);});
+test('No sobrescribe historiales incompletos, de otra cuenta o con conflictos',()=>{const s=setup(),text=comment(s,'tarjeta'),action={id:'comentario',idMemberCreator:'persona',data:{text}};assert.throws(()=>reconcileLegacy(s,'tarjeta',{...action,idMemberCreator:'otra'}));assert.throws(()=>reconcileLegacy(s,'tarjeta',{...action,data:{text:text.replace('Total acumulado: 30 min','Total acumulado: 50 min')}}));s.entries[0].seconds=600;assert.throws(()=>reconcileLegacy(s,'tarjeta',action),/misma fecha/);assert.equal(s.entries[0].seconds,600);assert.equal(s.entries.length,1);});

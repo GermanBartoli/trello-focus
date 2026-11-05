@@ -105,3 +105,9 @@ Se calcula a partir del historial local, sin servicios externos ni dependencias 
 En Mis tarjetas, «Mostrar portada» permite ver una mini portada de color o imagen arriba, a todo el ancho. Está desactivado inicialmente y recuerda la preferencia. «Prioridad: rojo → rosa → verde» ordena primero esos colores; los demás colores, imágenes y tarjetas sin portada quedan después, conservando su orden relativo. El orden se guarda y funciona aunque las portadas estén ocultas. Usá Actualizar tarjetas para cargar los cambios de portada realizados en Trello.
 
 Si hay tarjetas guardadas por una versión anterior sin datos de portada, al mostrarlas o elegir el orden por color el panel las actualiza automáticamente una vez por apertura. La carga conserva el historial y las preferencias. Si falla la conexión, se puede reintentar con Actualizar tarjetas.
+
+## Recuperación al reintentar
+
+Reintentar sincronización puede recuperar un comentario previo de Trello Focus cuando el perfil perdió su asociación con él. Verifica autor, tarjeta, formato y total; incorpora registros faltantes, conserva los locales y actualiza el mismo comentario. Antes de unir guarda una copia local de recuperación. Los reintentos no vuelven a sumar registros.
+
+Los comentarios antiguos con historial truncado, notas generales, sesiones abiertas, cambios externos o fechas ambiguas no se sobrescriben automáticamente. En esos casos se informa el bloqueo para revisarlos sin perder datos. La recuperación no sustituye una copia de seguridad ni sincroniza todos los perfiles.

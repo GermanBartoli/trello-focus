@@ -1,3 +1,4 @@
+import {reconcileLegacy} from './reconcile';
 import {cardTools,CARD_TOOLS,textValue} from './cardTools';
 import {initial,remaining,elapsed,validateSeconds,addEntry,comment,cardPanelState,type State,type Card} from './model';
 class TrelloError extends Error { constructor(public status:number){super(`Trello respondió HTTP ${status}.`);} }
@@ -29,7 +30,11 @@ async function sync(state:State,cardId:string){
    const actions=await api(`cards/${cardId}/actions?filter=commentCard&limit=1000`);
    const matches=actions.filter((a:any)=>a.idMemberCreator===state.member?.id&&a.data.text.includes(marker));
    if(matches.length===1&&(matches[0].data.text===text||matches[0].data.text===ledger.pendingText)){ledger.commentId=matches[0].id;ledger.text=matches[0].data.text;ledger.creating=false;await save(state);if(ledger.text!==text){await sync(state,cardId);return;}}
-   else if(matches.length||ledger.creating)throw Error('Hay un registro previo o una creación pendiente de confirmar. No se creó otro comentario. Conservá este perfil y exportá el historial.');
+   else if(matches.length===1&&!ledger.commentId){
+    await chrome.storage.local.set({recoveryBackup:{date:new Date().toISOString(),cardId,state:structuredClone(state)}});
+    reconcileLegacy(state,cardId,matches[0]);ledger.commentId=matches[0].id;ledger.text=matches[0].data.text;ledger.creating=false;delete ledger.pendingText;await save(state);await sync(state,cardId);return;
+   }
+   else if(matches.length||ledger.creating)throw Error('Hay varios registros previos o una creación pendiente de confirmar. No se creó otro comentario. Conservá este perfil y exportá el historial.');
    else {operation='crear el comentario';ledger.creating=true;ledger.pendingText=text;await save(state);try{const created=await api(`cards/${cardId}/actions/comments`,'POST',{text});ledger.commentId=created.id;}catch(error){if(error instanceof TrelloError&&error.status>=400&&error.status<500&&error.status!==408)ledger.creating=false;throw error;}}
   }
   ledger.text=text;ledger.creating=false;delete ledger.pendingText;delete ledger.error;
