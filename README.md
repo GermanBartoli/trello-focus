@@ -70,7 +70,7 @@ npm run dev
 
 Las pruebas automatizadas cubren duración, pausa, validación, deduplicación, actualización del mismo comentario, reintentos de red, creación incierta, conflictos de edición, sesión única y control de mensajes desde Trello. Usan la lógica real y el worker compilado con API/Chrome simulados; no sustituyen una prueba con cuenta real autorizada.
 
-El flujo de GitHub Actions compila, ejecuta pruebas y adjunta la carpeta instalable en cada push. La web se compila con `npm run build:web` en `dist-web`; Cloudflare Pages publica esta carpeta al recibir cambios en `main`.
+El flujo de GitHub Actions compila, ejecuta pruebas y adjunta la carpeta instalable en cada push. La web se compila con `npm run build:web` en `dist-web`; GitHub Actions publica esta carpeta en Cloudflare Pages al recibir cambios en `main`, después del build y las pruebas. `scripts/deploy-web.mjs` utiliza la API oficial con secretos de Actions; no requiere credenciales en el código.
 
 ## Historial y navegación
 
