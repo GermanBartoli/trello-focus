@@ -50,3 +50,8 @@ test('El panel identifica su sesión y no hereda errores de otra tarjeta',()=>{
  state.session.end=null;assert.match(comment(state,'c'),/Sesión en pausa/);
  delete state.session;assert.doesNotMatch(comment(state,'c'),/Sesión en/);
 });
+
+test('Filtros combinados por persona, etiqueta y vencimiento respetan fechas y finalización',async()=>{
+ const {matchesExtra}=await import('../src/model.ts');const c={id:'x',name:'Tarea',url:'',idMembers:['ana'],idLabels:['roja'],due:'2026-11-04T12:00:00',dueComplete:false};const f={person:'ana',label:'roja',due:'today',completion:'pending'};const now=new Date('2026-11-04T10:00:00');
+ assert.equal(matchesExtra(c,f,now),true);assert.equal(matchesExtra(c,{...f,person:'otro'},now),false);assert.equal(matchesExtra(c,{...f,label:'none'},now),false);assert.equal(matchesExtra(c,{...f,due:'tomorrow'},now),false);assert.equal(matchesExtra({...c,dueComplete:true},f,now),false);assert.equal(matchesExtra({...c,idMembers:[],idLabels:[],due:null},{person:'none',label:'none',due:'none',completion:''},now),true);
+});

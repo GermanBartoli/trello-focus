@@ -1,17 +1,32 @@
 import type {Card,State} from './model';
+export type BoardOptions={lists:{id:string;name:string;closed?:boolean}[];members:{id:string;fullName:string}[];labels:{id:string;name:string;color?:string}[]};
 export type Attachment={id:string;name:string;url:string;mimeType?:string;isUpload?:boolean};
 export type CardComment={id:string;idMemberCreator:string;date:string;data:{text:string};memberCreator?:{fullName:string}};
 export type CardDetails={card:Card&{desc?:string;cover?:{color?:string;idAttachment?:string}};members:{id:string;fullName:string}[];comments:CardComment[];attachments:Attachment[];stickers:{id:string;image:string}[];customStickers:{id:string;url:string}[];lists:{id:string;name:string}[]};
 type Api=(path:string,method?:string,body?:object)=>Promise<any>;
-export const CARD_TOOLS=['CARD_DETAILS','CARD_UPDATE','CARD_COMMENT','CARD_COMMENT_EDIT','CARD_ATTACHMENT','CARD_STICKER','CARD_STICKER_REMOVE'];
+export const CARD_TOOLS=['BOARD_OPTIONS','CARD_CREATE','CARD_DETAILS','CARD_UPDATE','CARD_COMMENT','CARD_COMMENT_EDIT','CARD_ATTACHMENT','CARD_STICKER','CARD_STICKER_REMOVE'];
 export const COVER_COLORS=['green','pink','red','purple','yellow','lime','blue','black','orange','sky'];
 const id=(value:unknown)=>{if(typeof value!=='string'||!/^[a-zA-Z0-9]{8,24}$/.test(value))throw Error('Identificador de Trello inválido.');return value;};
 export function textValue(value:unknown,max=16000){if(typeof value!=='string'||!value.trim()||value.length>max)throw Error(`Escribí entre 1 y ${max} caracteres.`);return value.trim();}
 export function httpUrl(value:unknown){const u=new URL(String(value));if(!['https:','http:'].includes(u.protocol)||u.username||u.password)throw Error('Usá un enlace HTTP o HTTPS válido.');return u.href;}
 export async function cardTools(message:any,state:State,api:Api,save:(s:State)=>Promise<unknown>){
+ if(message.type==='BOARD_OPTIONS'){
+  const board=id(message.boardId);const [lists,members,labels]=await Promise.all([api(`boards/${board}/lists?filter=open&fields=id,name,closed`),api(`boards/${board}/members?fields=id,fullName`),api(`boards/${board}/labels?limit=1000&fields=id,name,color`)]);return {lists,members,labels};
+ }
+ if(message.type==='CARD_CREATE'){
+  const board=id(message.boardId),list=id(message.listId);const name=textValue(message.name,16384);const desc=String(message.desc??'');if(desc.length>16384)throw Error('Descripción demasiado larga.');
+  const actual=await api(`lists/${list}?fields=idBoard,closed`);if(actual.idBoard!==board||actual.closed)throw Error('La lista no pertenece al tablero elegido o está archivada.');
+  const ids=(values:unknown)=>{if(!Array.isArray(values)||values.length>100)throw Error('Selección inválida.');return values.map(id);};
+  const members=ids(message.members??[]),labels=ids(message.labels??[]);
+  const [allowedMembers,allowedLabels]=await Promise.all([api(`boards/${board}/members?fields=id`),api(`boards/${board}/labels?limit=1000&fields=id`)]);
+  if(members.some(m=>!allowedMembers.some((a:any)=>a.id===m))||labels.some(l=>!allowedLabels.some((a:any)=>a.id===l)))throw Error('Hay miembros o etiquetas que no pertenecen al tablero.');
+  const due=message.due?new Date(message.due):null;if(due&&!Number.isFinite(due.getTime()))throw Error('Vencimiento inválido.');
+  const card=await api('cards','POST',{name,desc,idList:list,idMembers:members,idLabels:labels,due:due?.toISOString()??null,pos:'bottom'});
+  state.cards=state.cards.filter(c=>c.id!==card.id).concat(card);await save(state);return card;
+ }
  const cardId=id(message.cardId),path=`cards/${cardId}`;
  if(message.type==='CARD_DETAILS'){
-  const card=await api(`${path}?fields=id,name,url,desc,idBoard,idList,idMembers,closed,cover`);
+  const card=await api(`${path}?fields=id,name,url,desc,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed,cover`);
   const [members,comments,attachments,stickers,customStickers,lists]=await Promise.all([api(`boards/${id(card.idBoard)}/members?fields=id,fullName`),api(`${path}/actions?filter=commentCard&limit=1000`),api(`${path}/attachments`),api(`${path}/stickers`),api('members/me/customStickers').catch(()=>[]),api(`boards/${id(card.idBoard)}/lists?filter=open&fields=id,name`)]);
   state.cards=state.cards.filter(c=>c.id!==card.id).concat(card);await save(state);
   return {card,members,comments,attachments,stickers,customStickers,lists};

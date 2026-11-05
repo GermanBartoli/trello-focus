@@ -56,16 +56,16 @@ async function handle(message:any,content:boolean){
   if(typeof message.cardId!=='string'||!/^[a-zA-Z0-9]{8,24}$/.test(message.cardId))throw Error('Tarjeta inválida.');
   const state=await load();
   let card=state.cards.find(c=>c.id===message.cardId||c.url.split('/')[4]===message.cardId);
-  if(!card){card=await api(`cards/${message.cardId}?fields=id,name,url,idBoard,idList,idMembers,closed`) as Card;state.cards.push(card);await save(state);}
+  if(!card){card=await api(`cards/${message.cardId}?fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed`) as Card;state.cards.push(card);await save(state);}
   await chrome.tabs.create({url:chrome.runtime.getURL('index.html')+'?view=card&card='+encodeURIComponent(card.id)});return;
  }
  if(message.type==='OPEN'){await chrome.tabs.create({url:chrome.runtime.getURL('index.html')});return;}
  if(content&&!['START','ADD','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type))throw Error('Operación no permitida.');
  const state=await load();if(message.type!=='DISCARD_SYNC')await settle(state);
  if(CARD_TOOLS.includes(message.type)){
-  if(!['CARD_COMMENT','CARD_ATTACHMENT','CARD_STICKER'].includes(message.type))return cardTools(message,state,api,save);
+  if(!['CARD_CREATE','CARD_COMMENT','CARD_ATTACHMENT','CARD_STICKER'].includes(message.type))return cardTools(message,state,api,save);
   if(typeof message.requestId!=='string'||!/^[a-zA-Z0-9-]{8,100}$/.test(message.requestId))throw Error('Identificador de operación inválido.');
-  const key=message.type+':'+message.cardId+':'+message.requestId;
+  const key=message.type+':'+(message.cardId??message.boardId)+':'+message.requestId;
   const receipts=(await chrome.storage.local.get('receipts')).receipts??{};
   if(receipts[key]?.done)return receipts[key].result;
   if(receipts[key])throw Error('El envío anterior no pudo confirmarse. Revisá la tarjeta en Trello antes de volver a publicarlo.');
@@ -110,7 +110,7 @@ async function handle(message:any,content:boolean){
  case 'DISCONNECT':if(state.session)throw Error('Terminá o descartá la sesión primero.');await chrome.storage.local.remove('credentials');state.connected=false;state.credentialsStored=false;await save(state);return state;
  case 'REFRESH':{
   state.boards=await api('members/me/boards?filter=all&fields=id,name,closed');
-  state.cards=await api('members/me/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,closed');
+  state.cards=[];for(const board of state.boards){const cards=await api(`boards/${board.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed`);state.cards.push(...cards);}state.cards=[...new Map(state.cards.map(c=>[c.id,c])).values()];
   state.lists=[];
   for(const id of new Set(state.cards.map(c=>c.idBoard).filter(Boolean))){
    const lists=await api(`boards/${id}/lists?filter=all&fields=id,name,idBoard,closed`);
@@ -120,7 +120,7 @@ async function handle(message:any,content:boolean){
  }
  case 'BOARD':{
   if(!/^[a-f0-9]{24}$/.test(message.id))throw Error('Tablero inválido.');
-  const cards=await api(`boards/${message.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,closed`);
+  const cards=await api(`boards/${message.id}/cards?filter=all&fields=id,name,url,idBoard,idList,idMembers,idLabels,labels,due,dueComplete,closed`);
   state.cards=[...state.cards.filter(c=>c.idBoard!==message.id),...cards];
   const lists=await api(`boards/${message.id}/lists?filter=all&fields=id,name,idBoard,closed`);state.lists=[...state.lists.filter(l=>!lists.some((n:any)=>n.id===l.id)),...lists];await save(state);return state;
  }

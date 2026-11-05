@@ -10,7 +10,7 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
   if(path.startsWith('members/me/boards?')){assert.match(path,/filter=all/);return Response.json([{id:'d'.repeat(24),name:'Tablero',closed:false}]);}
   if(path.startsWith('members/me/cards?')){assert.match(path,/filter=all/);assert.match(path,/closed/);return Response.json([card,{...card,id:'archivada',idBoard:'d'.repeat(24),closed:true}]);}
   if(path.includes('/lists?')){assert.match(path,/filter=all/);return Response.json([{id:'lista',name:'Lista archivada',closed:true}]);}
-  if(path.startsWith('boards/')&&path.includes('/cards?')){assert.match(path,/filter=all/);assert.match(path,/closed/);return Response.json([{...card,id:'archivada',idBoard:'d'.repeat(24),closed:true}]);}
+  if(path.startsWith('boards/')&&path.includes('/cards?')){assert.match(path,/filter=all/);assert.match(path,/closed/);return Response.json([card,{...card,id:'archivada',idBoard:'d'.repeat(24),closed:true}]);}
   if(path.startsWith('members/me?'))return Response.json({id:member,fullName:'Persona de prueba'});
   if(path.startsWith(`cards/${cardId}?`)||path.startsWith('cards/AbCd1234?'))return Response.json(card);
   if(path.includes('filter=commentCard'))return Response.json(comments);

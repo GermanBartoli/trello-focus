@@ -87,3 +87,9 @@ Desde el detalle se pueden editar título, descripción, lista y miembros existe
 Los envíos de comentarios, adjuntos y stickers no se reintentan automáticamente. Si una respuesta se pierde, se conserva un comprobante local para impedir repetir esa misma operación; revisar la tarjeta antes de iniciar otra publicación. El historial de tiempo conserva su sincronización independiente.
 
 Referencia: [API oficial de tarjetas](https://developer.atlassian.com/cloud/trello/rest/api-group-cards/) y [formato de texto de Trello](https://support.atlassian.com/trello/docs/how-to-format-your-text-in-trello/).
+
+## Filtros y creación de tarjetas
+
+Los filtros de persona, etiqueta, vencimiento y finalización se combinan con tablero, lista, búsqueda, estado y orden. Se recuerdan al recargar en el mismo perfil. Elegir una persona desactiva «Asignadas a mí». Actualizar todos los tableros carga también tarjetas de otros miembros; puede tardar más en cuentas con muchos tableros.
+
+«Crear tarjeta» permite elegir tablero y lista activa, título, descripción Markdown, miembros, etiquetas y vencimiento opcional. Al crearla abre su detalle. Valida que la lista y las selecciones pertenezcan al tablero y protege el mismo envío contra duplicados.

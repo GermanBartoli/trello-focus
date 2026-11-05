@@ -1,4 +1,4 @@
-export type Card = {id:string;name:string;url:string;idBoard?:string;idList?:string;idMembers?:string[];closed?:boolean};
+export type Card = {id:string;name:string;url:string;idBoard?:string;idList?:string;idMembers?:string[];closed?:boolean;idLabels?:string[];labels?:{id:string;name:string;color?:string}[];due?:string|null;dueComplete?:boolean};
 export type Entry = {id:string;cardId:string;seconds:number;date:string;note:string;kind:'manual'|'session'};
 export type Session = {note?:string;id:string;card:Card;duration:number;remaining:number;end:number|null;startedAt?:string;review?:boolean};
 export type Ledger = {discarded?:boolean;commentId?:string;text?:string;creating?:boolean;pendingText?:string;error?:string};
@@ -54,4 +54,23 @@ export function cardPanelState(state:State,cardId:string){
   error:card?state.ledgers[card.id]?.error:undefined,
   syncDiscarded:card?!!state.ledgers[card.id]?.discarded:false,
   total:card?state.entries.filter(e=>e.cardId===card.id).reduce((n,e)=>n+e.seconds,0):0};
+}
+
+export type ExtraFilters={person:string;label:string;due:string;completion:string};
+export function matchesExtra(card:Card,filters:ExtraFilters,now=new Date()){
+ if(filters.person==='none'&&card.idMembers?.length)return false;
+ if(filters.person&&filters.person!=='none'&&!card.idMembers?.includes(filters.person))return false;
+ const labels=card.idLabels??card.labels?.map(l=>l.id)??[];
+ if(filters.label==='none'&&labels.length)return false;
+ if(filters.label&&filters.label!=='none'&&!labels.includes(filters.label))return false;
+ if(filters.completion==='done'&&!card.dueComplete)return false;
+ if(filters.completion==='pending'&&card.dueComplete)return false;
+ if(!filters.due)return true;
+ if(filters.due==='none')return !card.due;
+ if(!card.due||card.dueComplete)return false;
+ const date=new Date(card.due);if(!Number.isFinite(date.getTime()))return false;
+ if(filters.due==='overdue')return date<now;
+ const start=new Date(now);start.setHours(0,0,0,0);const end=new Date(start);end.setDate(end.getDate()+(filters.due==='week'?7:filters.due==='tomorrow'?2:1));
+ if(filters.due==='tomorrow')start.setDate(start.getDate()+1);
+ return date>=start&&date<end;
 }
