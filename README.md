@@ -10,7 +10,9 @@ Ambas versiones usan el mismo motor de sesiones y sincronización de comentarios
 
 En la web, mantener la pestaña abierta para finalizar sesiones y recibir notificaciones. Al volver después de un cierre o suspensión, se recupera el estado y se solicita revisar sesiones vencidas tardíamente. Las operaciones entre pestañas se coordinan mediante Web Locks; no se usa una cuenta ni base de datos compartida.
 
-[Descargar extensión desde Drive](https://drive.google.com/file/d/1gNWoGinlIz_HbLXOXAYhd9saWO1osRE4/view?usp=sharing).
+[Descargar la última versión de la extensión](https://github.com/GermanBartoli/trello-focus/releases/latest).
+
+Desde la versión 1.1.0, la web oficial detecta la extensión instalada en el mismo perfil y permite abrir su panel sin conectar la web. El canal solo comunica la versión y el resultado de apertura; no comparte credenciales, cuenta ni historial. La apertura requiere pulsar el botón. La ausencia de respuesta también puede significar una versión antigua o permisos del sitio restringidos. Tras actualizar, pulsar Recargar en Chrome y recargar la web. No desinstalar la extensión.
 
 ## Instalación
 
@@ -51,7 +53,7 @@ Si el navegador se cierra o una alarma llega más de 90 segundos tarde, una sesi
 
 La extensión se comunica únicamente con la API de Trello para sus funciones. No tiene servidor propio ni telemetría. Credenciales e historial se almacenan en `chrome.storage.local`, con acceso restringido a contextos confiables de la extensión. No se usa sincronización de Chrome para credenciales. Este almacenamiento no es una bóveda cifrada independiente: proteger el perfil de Windows/Chrome.
 
-El script de la tarjeta recibe solamente la configuración mínima y envía acciones al proceso de fondo. No recibe el token. Los permisos son `storage`, `alarms`, `notifications`, acceso a la API y al dominio `trello.com` para comprobar la URL actual de la pestaña, y un script en `trello.com`. **Desconectar autorización** elimina la credencial local; para revocar el acceso en Trello usar la administración de aplicaciones de la cuenta.
+El script de la tarjeta recibe solamente la configuración mínima y envía acciones al proceso de fondo. No recibe el token. Los permisos son `storage`, `alarms`, `notifications`, acceso a la API y al dominio `trello.com` para comprobar la URL actual de la pestaña, un script en `trello.com` y un script de detección exclusivamente en `https://trello-focus.pages.dev/*`. **Desconectar autorización** elimina la credencial local; para revocar el acceso en Trello usar la administración de aplicaciones de la cuenta.
 
 ## Desarrollo
 

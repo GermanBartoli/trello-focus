@@ -4,7 +4,7 @@ import {initial,comment} from '../src/model.ts';
 test('Flujo real del worker compilado: comentario único, reintentos, sesión y permisos',async()=>{
  const opened:string[]=[];let tabUrl='https://trello.com/';const db:any={};let listener:any;const alarmListeners:any[]=[];let requests:any[]=[];let comments:any[]=[];let failPut=false;let failPost=false;let rejectPost=false;
  const member='a'.repeat(24),cardId='b'.repeat(24),card={id:cardId,name:'Tarjeta de prueba',url:'https://trello.com/c/AbCd1234/prueba',idMembers:[member]};
- (globalThis as any).chrome={storage:{local:{get:async(key:string)=>structuredClone({[key]:db[key]}),set:async(data:object)=>Object.assign(db,structuredClone(data)),remove:async(key:string)=>{delete db[key];},setAccessLevel:async()=>{}}},runtime:{id:'extension',getURL:(p:string)=>`chrome-extension://extension/${p}`,onMessage:{addListener:(fn:any)=>listener=fn},onStartup:{addListener:()=>{}}},alarms:{clear:async()=>{},create:async()=>{},onAlarm:{addListener:(fn:any)=>alarmListeners.push(fn)}},action:{setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}},notifications:{create:()=>{}},tabs:{create:async({url}:{url:string})=>{opened.push(url);},get:async()=>({url:tabUrl})}};
+ (globalThis as any).chrome={storage:{local:{get:async(key:string)=>structuredClone({[key]:db[key]}),set:async(data:object)=>Object.assign(db,structuredClone(data)),remove:async(key:string)=>{delete db[key];},setAccessLevel:async()=>{}}},runtime:{id:'extension',getManifest:()=>({version:'1.1.0'}),getURL:(p:string)=>`chrome-extension://extension/${p}`,onMessage:{addListener:(fn:any)=>listener=fn},onStartup:{addListener:()=>{}}},alarms:{clear:async()=>{},create:async()=>{},onAlarm:{addListener:(fn:any)=>alarmListeners.push(fn)}},action:{setBadgeText:async()=>{},setBadgeBackgroundColor:async()=>{}},notifications:{create:()=>{}},tabs:{create:async({url}:{url:string})=>{opened.push(url);},get:async()=>({url:tabUrl})}};
  (globalThis as any).fetch=async(url:string,options:any)=>{
   const path=url.split('/1/')[1];requests.push({path,method:options.method});const payload=options.body?JSON.parse(options.body):null;
   if(path.startsWith('members/me/boards?')){assert.match(path,/filter=all/);return Response.json([{id:'d'.repeat(24),name:'Tablero',closed:false}]);}
@@ -22,6 +22,18 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  };
  await import('../dist/background.js' as string);
  const send=(type:string,data:object={},url='chrome-extension://extension/index.html',currentUrl=url):Promise<any>=>new Promise(resolve=>{tabUrl=currentUrl;listener({type,...data},{id:'extension',url,tab:{id:7}},resolve);});
+ // La web solo puede detectar y abrir; nunca consultar o cambiar datos de Trello.
+ const siteSender={id:'extension',url:'https://trello-focus.pages.dev/?view=settings',frameId:0,tab:{id:9}};
+ let siteReply:any;
+ listener({type:'SITE_PING'},siteSender,(data:any)=>siteReply=data);
+ assert.deepEqual(siteReply,{version:'1.1.0'});
+ await new Promise<void>(resolve=>listener({type:'SITE_OPEN',url:'https://otro.example'},siteSender,(data:any)=>{assert.deepEqual(data,{opened:true});resolve();}));
+ assert.equal(opened.at(-1),'chrome-extension://extension/index.html');
+ for(const type of ['STATE','CONNECT','DISCONNECT','ADD','SITE_PING']){
+  for(const sender of type==='SITE_PING'?[{...siteSender,frameId:1},{...siteSender,id:'otra'},{...siteSender,url:'https://trello-focus.pages.dev.ejemplo.com/'}]:[siteSender]){
+   let replied=false;assert.equal(listener({type},sender,()=>replied=true),undefined);assert.equal(replied,false);
+  }
+ }
  await send('STATE');
  assert.match((await send('CONNECT',{credentials:{key:'x',token:'pomello'}})).error,/válidos/);
  assert.ok(!(await send('CONNECT',{credentials:{key:'a'.repeat(32),token:'token-prueba'}})).error);

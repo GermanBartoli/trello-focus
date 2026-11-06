@@ -3,6 +3,15 @@ import {cardPanelState} from './model';
 const engine=createEngine(chrome);
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
  if(sender.id!==chrome.runtime.id)return;
+ if(sender.url?.startsWith('https://trello-focus.pages.dev/')){
+  if(sender.frameId!==0||sender.tab?.id===undefined)return;
+  if(message.type==='SITE_PING'){respond({version:chrome.runtime.getManifest().version});return;}
+  if(message.type==='SITE_OPEN'){
+   chrome.tabs.create({url:chrome.runtime.getURL('index.html')}).then(()=>respond({opened:true}),()=>respond({opened:false}));return true;
+  }
+  // Ninguna otra operación ni estado del motor se expone a la web.
+  return;
+ }
  const content=!!sender.url?.startsWith('https://trello.com/');
  if(!content&&!sender.url?.startsWith(chrome.runtime.getURL('')))return;
  (async()=>{

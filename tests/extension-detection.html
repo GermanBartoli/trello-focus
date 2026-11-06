@@ -1,0 +1,9 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Prueba de detección de extensión</title><body><div id="root"></div><script>
+// Simulación de presencia sin credenciales ni una extensión instalada.
+window.addEventListener('message',event=>{
+ if(event.source===window&&event.origin===location.origin&&event.data?.channel==='trello-focus-extension-v1'&&event.data.type==='PING')window.postMessage({channel:event.data.channel,type:'PONG',requestId:event.data.requestId,version:'1.1.0'},location.origin);
+});
+document.addEventListener('click',event=>{
+ if(event.target.closest('button[data-trello-focus-open]'))window.postMessage({channel:'trello-focus-extension-v1',type:'OPEN_RESULT',ok:true},location.origin);
+});
+</script><script type="module" src="/src/main.tsx"></script></body></html>
