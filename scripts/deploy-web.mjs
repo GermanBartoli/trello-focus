@@ -11,7 +11,7 @@ async function api(url,options={}){
  const data=await response.json();if(!response.ok||!data.success)throw Error(`Cloudflare ${response.status}: ${JSON.stringify(data.errors)}`);return data.result;
 }
 const {jwt}=await api(base+'/upload-token');const manifest={},assets=[];
-const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml'};
+const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'};
 for(const entry of await readdir('dist-web',{recursive:true,withFileTypes:true})){
  if(!entry.isFile()||entry.name==='_headers')continue;
  const path=entry.parentPath+'/'+entry.name;const relative=path.replaceAll('\\','/').replace(/^dist-web\//,'');
