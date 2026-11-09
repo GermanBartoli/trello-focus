@@ -83,19 +83,19 @@ El script de la tarjeta recibe solamente la configuración mínima y envía acci
 Requiere Node.js 24 o superior.
 
 ```powershell
-npm ci
-npm run build
-npm test
-npm run dev
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm test
+pnpm run dev
 ```
 
-`npm run dev` ejecuta la aplicación web real. Para probar la extensión cargar `dist` en Chrome. La compilación produce el panel React, un service worker y un script de contenido independientes. Todas las dependencias de ejecución quedan empaquetadas; no se carga código remoto.
+`pnpm run dev` ejecuta la aplicación web real. Para probar la extensión cargar `dist` en Chrome. La compilación produce el panel React, un service worker y un script de contenido independientes. Todas las dependencias de ejecución quedan empaquetadas; no se carga código remoto.
 
 ## Verificaciones
 
 Las pruebas automatizadas cubren duración, pausa, validación, deduplicación, actualización del mismo comentario, reintentos de red, creación incierta, conflictos de edición, sesión única y control de mensajes desde Trello. Usan la lógica real y el worker compilado con API/Chrome simulados; no sustituyen una prueba con cuenta real autorizada.
 
-El flujo de GitHub Actions compila, ejecuta pruebas y adjunta la carpeta instalable en cada push. La web se compila con `npm run build:web` en `dist-web`; GitHub Actions publica esta carpeta en Cloudflare Pages al recibir cambios en `main`, después del build y las pruebas. `scripts/deploy-web.mjs` utiliza la API oficial con secretos de Actions; no requiere credenciales en el código.
+El flujo de GitHub Actions compila, ejecuta pruebas y adjunta la carpeta instalable en cada push. La web se compila con `pnpm run build:web` en `dist-web`; GitHub Actions publica esta carpeta en Cloudflare Pages al recibir cambios en `main`, después del build y las pruebas. `scripts/deploy-web.mjs` utiliza la API oficial con secretos de Actions; no requiere credenciales en el código.
 
 ## Historial y navegación
 

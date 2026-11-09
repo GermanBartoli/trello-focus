@@ -7,10 +7,10 @@ class TrelloError extends Error { constructor(public status:number){super(`Trell
 type Credentials={key:string;token:string};
 let queue:Promise<unknown>=Promise.resolve();
 const serial=<T>(fn:()=>Promise<T>)=>{const task=queue.then(fn,fn);queue=task.catch(()=>{});return task;};
-const load=async():Promise<State> => {const saved=(await platform.storage.local.get('state')).state; if(saved!==undefined&&saved!==null&&!validStoredState(saved))throw Error(STORAGE_ERROR);const state:State=saved??initial();const credentials=(await platform.storage.local.get('credentials')).credentials;state.credentialsStored=!!(credentials?.key&&credentials?.token);if(!state.credentialsStored)state.connected=false;return state;};
+const load=async():Promise<State> => {const saved=(await platform.storage.local.get('state')).state; if(saved!==undefined&&saved!==null&&!validStoredState(saved))throw Error(STORAGE_ERROR);const state:State=saved??initial();const credentials=(await platform.storage.local.get<{credentials?:Credentials}>('credentials')).credentials;state.credentialsStored=!!(credentials?.key&&credentials?.token);if(!state.credentialsStored)state.connected=false;return state;};
 const save=async(state:State)=>platform.storage.local.set({state});
 async function api(path:string,method='GET',body?:object,credentials?:Credentials){
- const c=credentials ?? (await platform.storage.local.get('credentials')).credentials;
+ const c=credentials ?? (await platform.storage.local.get<{credentials?:Credentials}>('credentials')).credentials;
  if(!c)throw Error('Conectá tu cuenta de Trello desde Configuración.');
  const response=await fetch(`https://api.trello.com/1/${path}`,{method,headers:{Authorization:`OAuth oauth_consumer_key="${c.key}", oauth_token="${c.token}"`,...(body instanceof FormData?{}:{'Content-Type':'application/json'})},body:body instanceof FormData?body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(20000)});
  if(!response.ok)throw new TrelloError(response.status);
@@ -71,11 +71,11 @@ async function handle(message:any,content:boolean){
  if(message.type==='EXPORT_RECOVERY'||message.type==='RECOVER_STATE'){
   const stored=(await platform.storage.local.get('state')).state;
   if(message.type==='EXPORT_RECOVERY'){
-   if(stored!==undefined&&stored!==null&&!validStoredState(stored))return {date:new Date().toISOString(),state:stored?.__trelloFocusInvalidJson??stored};
+   if(stored!==undefined&&stored!==null&&!validStoredState(stored))return {date:new Date().toISOString(),state:(typeof stored==='object'&&stored!==null&&'__trelloFocusInvalidJson' in stored?stored.__trelloFocusInvalidJson??stored:stored)};
    return (await platform.storage.local.get('storageRecoveryBackup')).storageRecoveryBackup;
   }
   if(stored===undefined||stored===null||validStoredState(stored))throw Error('El estado actual no necesita restablecerse.');
-  const backup={date:new Date().toISOString(),state:stored?.__trelloFocusInvalidJson??stored};
+  const backup={date:new Date().toISOString(),state:(typeof stored==='object'&&stored!==null&&'__trelloFocusInvalidJson' in stored?stored.__trelloFocusInvalidJson??stored:stored)};
   // El original permanece intacto si no hay espacio para conservar el respaldo.
   try{await platform.storage.local.set({['storageRecoveryBackup:'+crypto.randomUUID()]:backup});await platform.storage.local.set({storageRecoveryBackup:backup});}
   catch{throw Error('No se pudo guardar el respaldo. Descargalo y liberá espacio antes de reintentar; tus datos no se restablecieron.');}
@@ -87,7 +87,7 @@ async function handle(message:any,content:boolean){
   if(!['CARD_CREATE','CARD_COMMENT','CARD_ATTACHMENT','CARD_STICKER'].includes(message.type))return cardTools(message,state,api,save);
   if(typeof message.requestId!=='string'||!/^[a-zA-Z0-9-]{8,100}$/.test(message.requestId))throw Error('Identificador de operación inválido.');
   const key=message.type+':'+(message.cardId??message.boardId)+':'+message.requestId;
-  const receipts=(await platform.storage.local.get('receipts')).receipts??{};
+  const receipts=(await platform.storage.local.get<{receipts?:Record<string,{pending?:boolean;done?:boolean;result?:unknown}>}>('receipts')).receipts??{};
   if(receipts[key]?.done)return receipts[key].result;
   if(receipts[key])throw Error('El envío anterior no pudo confirmarse. Revisá la tarjeta en Trello antes de volver a publicarlo.');
   receipts[key]={pending:true};await platform.storage.local.set({receipts});
