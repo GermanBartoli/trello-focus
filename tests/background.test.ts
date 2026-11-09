@@ -54,6 +54,10 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  failPut=false;await send('SYNC');assert.match(comments[0].data.text,/26 min/);assert.equal(db.state.ledgers[cardId].error,undefined);
  comments[0].data.text='Cambio manual';const puts=requests.filter(r=>r.method==='PUT').length;await send('ADD',{cardId,seconds:60,id:'cuatro'});assert.equal(requests.filter(r=>r.method==='PUT').length,puts);assert.match(db.state.ledgers[cardId].error,/cambió/);
  await send('START',{cardId});assert.match((await send('START',{cardId})).error,/activa/);await send('PAUSE');assert.equal(db.state.session.end,null);await send('RESUME');assert.ok(db.state.session.end);await send('CANCEL');assert.equal(db.state.session,undefined);
+ await send('START',{cardId});await send('PAUSE');await send('RESUME');
+ // Otro panel puede seguir mostrando la sesión pausada: repetir la orden no reinicia el reloj.
+ db.state.session.end-=60000;const resumedEnd=db.state.session.end;
+ await send('RESUME');assert.equal(db.state.session.end,resumedEnd);await send('CANCEL');
  await send('START',{cardId});db.state.session.end=Date.now()-120000;await send('STATE');assert.equal(db.state.session.review,true);await send('CANCEL');
  await send('START',{cardId});db.state.session.end=Date.now()-100;const count=db.state.entries.length;await send('STATE');await send('STATE');assert.equal(db.state.entries.length,count+1);assert.equal(db.state.session,undefined);
  assert.match((await send('CONNECT',{},'https://trello.com/c/AbCd1234/test')).error,/permitida/);

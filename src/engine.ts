@@ -144,7 +144,7 @@ async function handle(message:any,content:boolean){
   return state;
  }
  case 'PAUSE':if(state.session){state.session.remaining=remaining(state.session);state.session.end=null;await save(state);await alarm(state);await sync(state,state.session.card.id);}return state;
- case 'RESUME':if(state.session&&!state.session.review){state.session.end=Date.now()+state.session.remaining*1000;await save(state);await alarm(state);await sync(state,state.session.card.id);}return state;
+ case 'RESUME':if(state.session&&state.session.end===null&&!state.session.review){state.session.end=Date.now()+state.session.remaining*1000;await save(state);await alarm(state);await sync(state,state.session.card.id);}return state;
  case 'FINISH':{
   const s=state.session;if(s){const seconds=elapsed(s);if(seconds>0)addEntry(state,{id:s.id,cardId:s.card.id,seconds,date:new Date().toISOString(),note:s.note||(s.review?'Sesión recuperada y confirmada':''),kind:'session'});delete state.session;await save(state);await alarm(state);await sync(state,s.card.id);}return state;
  }
