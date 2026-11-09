@@ -1,5 +1,24 @@
 # Trello Focus
 
+**Registrá tiempo y sesiones de concentración en tus tarjetas, con una web y una extensión independientes.**
+
+[![Repositorio](https://img.shields.io/badge/GitHub-GermanBartoli-181717?logo=github)](https://github.com/GermanBartoli/trello-focus)
+[![Verificaciones](https://github.com/GermanBartoli/trello-focus/actions/workflows/verificar.yml/badge.svg)](https://github.com/GermanBartoli/trello-focus/actions/workflows/verificar.yml)
+
+[Abrir sitio](https://trello-focus.pages.dev/) · [Descargas](https://github.com/GermanBartoli/trello-focus/releases) · [Empezar](#primeros-pasos) · [Mapa del repositorio](#mapa-del-repositorio) · [Autoría](#autoría-de-esta-documentación)
+
+![Vista del proyecto: Trello Focus](docs/images/vista-actual.jpg)
+
+*Captura de la página publicada, tomada el 9 de noviembre de 2026. Conservada sin redimensionar ni recomprimir.*
+
+## Primeros pasos
+
+1. Elegí web o extensión. La extensión agrega el panel dentro de Trello; la web también funciona por separado.
+2. Conectá tu cuenta en Configuración siguiendo la guía de instalación.
+3. Elegí una tarjeta, iniciá una sesión o sumá tiempo manual, y revisá Mi tiempo y Estadísticas. Exportá el historial para conservar un respaldo.
+
+## Referencia y detalles
+
 Aplicación web y extensión de Chrome independientes para registrar tiempo en Trello, creada con TypeScript, React, CSS, Vite y Manifest V3. Proyecto independiente, sin afiliación con Trello, Atlassian ni Pomello.
 
 ## Web y extensión
@@ -127,3 +146,19 @@ Los comentarios antiguos con historial truncado, notas generales, sesiones abier
 ## Tiempo manual predeterminado
 
 Configuración → Tu ritmo de trabajo permite guardar horas y minutos para nuevas cargas manuales (entre 1 minuto y 24 horas). Se conserva en el perfil y se aplica al modal del panel y al formulario flotante de Trello. Los perfiles anteriores comienzan en 15 minutos. Cambiar una carga individual no modifica esta preferencia; el panel flotante no pisa valores que ya estés escribiendo.
+
+## Últimas correcciones de uso
+
+La versión 1.1.2 distribuye el menú móvil en dos columnas para que Configuración permanezca visible. Desde 1.1.1, repetir la orden de reanudar no reinicia el vencimiento de una sesión ya activa. Para actualizar la extensión, reemplazá sus archivos en la misma carpeta y pulsá Recargar en Chrome; no la desinstales.
+
+
+## Mapa del repositorio
+
+- [package.json](<package.json>)
+- [index.html](<index.html>)
+
+## Autoría de esta documentación
+
+Repositorio mantenido por [Germán Bartoli](https://github.com/GermanBartoli). Guía revisada y actualizada con **Codex**, coautor de esta actualización documental. Los autores, colaboradores, licencias y recursos de terceros conservan sus créditos originales.
+
+Los commits de esta revisión incluyen `Co-authored-by: Codex <noreply@openai.com>`; esta atribución no modifica la autoría del historial anterior.
