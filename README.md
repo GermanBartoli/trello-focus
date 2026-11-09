@@ -11,6 +11,10 @@
 
 *Captura de la página publicada, tomada el 9 de noviembre de 2026. Conservada sin redimensionar ni recomprimir.*
 
+## Recuperar datos locales dañados
+
+Si el historial local no se puede leer, aparece **Recuperar datos locales**. Podés descargar el contenido original o pulsar **Guardar respaldo y restablecer**: primero conserva una copia en el mismo navegador y luego inicia un historial local vacío. No modifica tarjetas, comentarios ni credenciales de Trello. Si no hay espacio para el respaldo, no restablece los datos. El respaldo permanece disponible para descargar y revisar después.
+
 ## Primeros pasos
 
 1. Elegí web o extensión. La extensión agrega el panel dentro de Trello; la web también funciona por separado.

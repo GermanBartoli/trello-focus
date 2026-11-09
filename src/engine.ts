@@ -1,3 +1,4 @@
+import {validStoredState,STORAGE_ERROR} from './storageRecovery';
 import {reconcileLegacy} from './reconcile';
 import {cardTools,CARD_TOOLS,textValue} from './cardTools';
 import {initial,remaining,elapsed,validateSeconds,addEntry,comment,cardPanelState,type State,type Card} from './model';
@@ -6,7 +7,7 @@ class TrelloError extends Error { constructor(public status:number){super(`Trell
 type Credentials={key:string;token:string};
 let queue:Promise<unknown>=Promise.resolve();
 const serial=<T>(fn:()=>Promise<T>)=>{const task=queue.then(fn,fn);queue=task.catch(()=>{});return task;};
-const load=async():Promise<State> => {const state:State=(await platform.storage.local.get('state')).state??initial();const credentials=(await platform.storage.local.get('credentials')).credentials;state.credentialsStored=!!(credentials?.key&&credentials?.token);if(!state.credentialsStored)state.connected=false;return state;};
+const load=async():Promise<State> => {const saved=(await platform.storage.local.get('state')).state; if(saved!==undefined&&saved!==null&&!validStoredState(saved))throw Error(STORAGE_ERROR);const state:State=saved??initial();const credentials=(await platform.storage.local.get('credentials')).credentials;state.credentialsStored=!!(credentials?.key&&credentials?.token);if(!state.credentialsStored)state.connected=false;return state;};
 const save=async(state:State)=>platform.storage.local.set({state});
 async function api(path:string,method='GET',body?:object,credentials?:Credentials){
  const c=credentials ?? (await platform.storage.local.get('credentials')).credentials;
@@ -67,6 +68,20 @@ async function handle(message:any,content:boolean){
  }
  if(message.type==='OPEN'){await platform.tabs.create({url:platform.runtime.getURL('index.html')});return;}
  if(content&&!['START','ADD','CARD_STATE','PAUSE','RESUME','FINISH','CANCEL'].includes(message.type))throw Error('Operación no permitida.');
+ if(message.type==='EXPORT_RECOVERY'||message.type==='RECOVER_STATE'){
+  const stored=(await platform.storage.local.get('state')).state;
+  if(message.type==='EXPORT_RECOVERY'){
+   if(stored!==undefined&&stored!==null&&!validStoredState(stored))return {date:new Date().toISOString(),state:stored?.__trelloFocusInvalidJson??stored};
+   return (await platform.storage.local.get('storageRecoveryBackup')).storageRecoveryBackup;
+  }
+  if(stored===undefined||stored===null||validStoredState(stored))throw Error('El estado actual no necesita restablecerse.');
+  const backup={date:new Date().toISOString(),state:stored?.__trelloFocusInvalidJson??stored};
+  // El original permanece intacto si no hay espacio para conservar el respaldo.
+  try{await platform.storage.local.set({['storageRecoveryBackup:'+crypto.randomUUID()]:backup});await platform.storage.local.set({storageRecoveryBackup:backup});}
+  catch{throw Error('No se pudo guardar el respaldo. Descargalo y liberá espacio antes de reintentar; tus datos no se restablecieron.');}
+  const fresh=initial();fresh.recoveryBackupAvailable=true;
+  await save(fresh);await alarm(fresh);return fresh;
+ }
  const state=await load();if(message.type!=='DISCARD_SYNC')await settle(state);
  if(CARD_TOOLS.includes(message.type)){
   if(!['CARD_CREATE','CARD_COMMENT','CARD_ATTACHMENT','CARD_STICKER'].includes(message.type))return cardTools(message,state,api,save);

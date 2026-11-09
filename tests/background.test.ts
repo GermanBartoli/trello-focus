@@ -114,4 +114,14 @@ test('Flujo real del worker compilado: comentario único, reintentos, sesión y 
  failPut=true;await send('SYNC');assert.equal(db.state.entries.length,2);assert.ok(db.state.ledgers[cardId].error);assert.equal(comments.length,1);assert.equal(db.recoveryBackup.state.entries.length,1);
  failPut=false;await send('SYNC');await send('SYNC');assert.equal(db.state.entries.reduce((s:number,e:any)=>s+e.seconds,0),2400);assert.equal(db.state.entries.length,2);assert.equal(comments.length,1);assert.match(comments[0].data.text,/Total acumulado: 40 min/);assert.equal(db.state.ledgers[cardId].error,undefined);
  await send('DISCONNECT');assert.equal(db.credentials,undefined);assert.equal(db.state.connected,false);assert.equal((await send('STATE')).data.credentialsStored,false);
+ // Una extensión con estructura local dañada también puede recuperar sin escribir en Trello.
+ const savedCredentials=structuredClone(db.credentials);const requestsBeforeRecovery=requests.length;
+ db.state={entries:'dañado'};
+ assert.match((await send('STATE')).error,/datos locales están dañados/);
+ for(const type of ['RECOVER_STATE','EXPORT_RECOVERY'])assert.match((await send(type,{},source)).error,/permitida/);
+ assert.deepEqual((await send('EXPORT_RECOVERY')).data.state,{entries:'dañado'});
+ assert.equal((await send('RECOVER_STATE')).data.entries.length,0);
+ assert.deepEqual(db.credentials,savedCredentials);
+ assert.equal(requests.length,requestsBeforeRecovery);
+ assert.deepEqual(db.storageRecoveryBackup.state,{entries:'dañado'});
 });

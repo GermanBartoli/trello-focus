@@ -41,5 +41,29 @@ test('Web independiente: credenciales aisladas, persistencia y cargas serializad
   assert.equal((await reloaded.webRequest('STATE')).session.review,true);
   await reloaded.webRequest('CANCEL');await reloaded.webRequest('DISCONNECT');
   assert.equal(memory.has('trello-focus-web:credentials'),false);assert.equal((await reloaded.webRequest('STATE')).entries.length,2);
+  // La recuperación conserva el original y no necesita contactar Trello.
+  const damaged='{historial incompleto';
+  memory.set('trello-focus-web:state',damaged);
+  memory.set('trello-focus-web:credentials',JSON.stringify({key:'prueba',token:'solo-simulación'}));
+  await assert.rejects(runtime.webRequest('STATE'),/datos locales están dañados/);
+  assert.equal((await runtime.webRequest('EXPORT_RECOVERY')).state,damaged);
+  const storage=(globalThis as any).localStorage;
+  const originalSet=storage.setItem;
+  storage.setItem=(key:string,value:string)=>{if(key.includes('storageRecoveryBackup'))throw Error('Sin espacio');originalSet(key,value);};
+  await assert.rejects(runtime.webRequest('RECOVER_STATE'),/No se pudo guardar el respaldo/);
+  assert.equal(memory.get('trello-focus-web:state'),damaged);
+  storage.setItem=originalSet;
+  globalThis.fetch=async()=>{throw Error('La recuperación no debe contactar Trello');};
+  const recovered=await runtime.webRequest('RECOVER_STATE');
+  assert.equal(recovered.entries.length,0);
+  assert.equal(recovered.recoveryBackupAvailable,true);
+  assert.equal(JSON.parse(memory.get('trello-focus-web:credentials')!).token,'solo-simulación');
+  assert.equal((await runtime.webRequest('EXPORT_RECOVERY')).state,damaged);
+  await runtime.webRequest('DISCONNECT');
+  await assert.rejects(runtime.webRequest('RECOVER_STATE'),/no necesita restablecerse/);
+  memory.set('trello-focus-web:state','{}');
+  await assert.rejects(runtime.webRequest('STATE'),/datos locales están dañados/);
+  await runtime.webRequest('RECOVER_STATE');
+  assert.equal([...memory.keys()].filter(key=>key.startsWith('trello-focus-web:storageRecoveryBackup:')).length,2);
  }finally{globalThis.setInterval=originalInterval;globalThis.fetch=originalFetch;}
 });

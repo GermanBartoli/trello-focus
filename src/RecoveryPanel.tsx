@@ -1,0 +1,7 @@
+import {useState} from 'react';
+import {request} from './bridge';
+export function StorageRecovery({damaged,busy,recover}:{damaged:boolean;busy:boolean;recover:()=>void}){
+ const [error,setError]=useState('');
+ async function download(){try{const backup=await request<unknown>('EXPORT_RECOVERY');if(!backup)throw Error('No hay un respaldo disponible.');const url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='trello-focus-respaldo-local.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setError('');}catch(e){setError(e instanceof Error?e.message:'No se pudo descargar el respaldo.');}}
+ return <section className="notice" aria-label="Recuperación de datos locales"><h2>{damaged?'Recuperar datos locales':'Respaldo local conservado'}</h2><p>{damaged?'Podés descargar los datos originales. Al restablecer, primero se guardará una copia en este navegador y después comenzará un historial local vacío. Las tarjetas y comentarios de Trello y tus credenciales no se modifican.':'Los datos anteriores siguen guardados en este navegador. Podés descargarlos para revisarlos y recuperar información.'}</p><button disabled={busy} onClick={()=>void download()}>Descargar respaldo</button>{damaged&&<button disabled={busy} onClick={recover}>Guardar respaldo y restablecer</button>}{error&&<p role="alert">{error}</p>}</section>;
+}
