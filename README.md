@@ -5,7 +5,7 @@
 [![Repositorio](https://img.shields.io/badge/GitHub-GermanBartoli-181717?logo=github)](https://github.com/GermanBartoli/trello-focus)
 [![Verificaciones](https://github.com/GermanBartoli/trello-focus/actions/workflows/verificar.yml/badge.svg)](https://github.com/GermanBartoli/trello-focus/actions/workflows/verificar.yml)
 
-[Abrir sitio](https://trello-focus.pages.dev/) · [Descargas](https://github.com/GermanBartoli/trello-focus/releases) · [Empezar](#primeros-pasos) · [Mapa del repositorio](#mapa-del-repositorio) · [Autoría](#autoría-de-esta-documentación)
+[Abrir en Cloudflare](https://trello-focus.pages.dev/) · [Descargas](https://github.com/GermanBartoli/trello-focus/releases) · [Empezar](#primeros-pasos) · [Mapa del repositorio](#mapa-del-repositorio) · [Autoría](#autoría-de-esta-documentación)
 
 ![Vista del proyecto: Trello Focus](docs/images/vista-actual.jpg)
 
