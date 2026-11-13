@@ -1,6 +1,6 @@
 {
   "name": "trello-focus",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "private": true,
   "type": "module",
   "scripts": {
@@ -18,7 +18,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.7"
+    "vite": "^8.3.8"
   },
   "packageManager": "pnpm@12.18.0"
 }
