@@ -5,7 +5,7 @@ import {ExtensionInfo} from './ExtensionInfo';
 import {ExtensionAccess,useExtensionPresence,ConnectionSettings} from './ExtensionAccess';
 import {CardCover} from './CardCover';
 import {Statistics} from './Statistics';
-import React,{useEffect,useRef,useState} from 'react';
+import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {send,extension,subscribeState} from './bridge';
 import {initial,format,remaining,needsCoverRefresh,matchesExtra,sortCards,isArchived,matchesStatus,type CardStatus,type State,type Card} from './model';
@@ -25,6 +25,18 @@ function App(){
  const presence=useExtensionPresence(!extension);
  const [state,setState]=useState<State>(initial);const [route,setRoute]=useState(readRoute);const {view,cardId}=route;const [error,setError]=useState('');const [storageDamaged,setStorageDamaged]=useState(false);const [notificationPermission,setNotificationPermission]=useState(typeof Notification==='undefined'?'unsupported':Notification.permission);const [preferencesSaved,setPreferencesSaved]=useState(false);const [busy,setBusy]=useState(false);const [editingCredentials,setEditingCredentials]=useState(false);const [query,setQuery]=useSavedFilter<string>('query','');const [board,setBoard]=useSavedFilter<string>('board','');const [list,setList]=useSavedFilter<string>('list','');const status:CardStatus=state.cardStatus??'active';const [onlyMine,setOnlyMine]=useSavedFilter<boolean>('onlyMine',true);const [favorite,setFavorite]=useSavedFilter<boolean>('favorite',false);const [showCover,setShowCover]=useSavedFilter<boolean>('showCover',false);const [manual,setManual]=useState<Card>();const [starting,setStarting]=useState<Card>();const [now,setNow]=useState(Date.now());const [creating,setCreating]=useState(false);const [person,setPerson]=useSavedFilter<string>('person','');const [label,setLabel]=useSavedFilter<string>('label','');const [due,setDue]=useSavedFilter<string>('due','');const [completion,setCompletion]=useSavedFilter<string>('completion','');
 
+ const dialogoManual = useRef<HTMLDialogElement>(null);
+ useLayoutEffect(() => {
+   const dialogo = dialogoManual.current;
+   if (!manual || !dialogo) return;
+   const origen = document.activeElement;
+   dialogo.showModal();
+   dialogo.querySelector<HTMLInputElement>('input[name="hours"]')?.focus();
+   return () => {
+     dialogo.close();
+     if (origen instanceof HTMLElement && origen.isConnected) origen.focus();
+   };
+ }, [manual]);
  function navigate(view:string,cardId=''){const url=new URL(location.href);url.searchParams.set('view',view);if(cardId)url.searchParams.set('card',cardId);else url.searchParams.delete('card');if(url.href!==location.href)history.pushState(null,'',url);setRoute(readRoute());setManual(undefined);setStarting(undefined);setError('');window.scrollTo(0,0);}
  useEffect(()=>{const onPop=()=>{setRoute(readRoute());setManual(undefined);setError('');};window.addEventListener('popstate',onPop);return()=>window.removeEventListener('popstate',onPop);},[]);
  const coverRefreshAttempted=useRef(false);
@@ -49,6 +61,6 @@ function App(){
  <footer>Trello Focus · Un comentario por tarjeta. Cada minuto en su lugar.</footer><div className="gb-credit"><a href="https://germanbartoli.pages.dev/" target="_blank" rel="noopener noreferrer" aria-label="Hecho por Germán Bartoli · Abrir portfolio"><span>Hecho por Germán Bartoli</span><img src="./german-bartoli.webp" alt="German Bartoli — Developer" width="64" height="64" loading="lazy" /></a></div></main>
  {creating&&<CreateCard state={state} initialBoard={board} onClose={()=>setCreating(false)} onCreated={card=>{setCreating(false);void act('STATE');navigate('card',card.id);}}/>}
  {starting&&<div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="start-title"><button className="close" aria-label="Cerrar sesión" onClick={()=>setStarting(undefined)}>×</button><h2 id="start-title">Iniciar sesión de {state.minutes} minutos</h2><p>{starting.name}</p><form onSubmit={async e=>{e.preventDefault();const d=new FormData(e.currentTarget);if(await act('START',{cardId:starting.id,note:d.get('note')}))setStarting(undefined);}}><label>Mensaje opcional de la sesión<textarea name="note" maxLength={200} rows={3} placeholder="¿En qué vas a trabajar?"/></label><button className="primary" disabled={busy}>Iniciar sesión</button></form>{error&&<p className="error">{error}</p>}</section></div>}
- {manual&&<div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="manual-title"><button className="close" aria-label="Cerrar" onClick={()=>setManual(undefined)}>×</button><div className="eyebrow">REGISTRO MANUAL</div><h2 id="manual-title">Sumar tiempo</h2><p>{manual.name}</p><form onSubmit={async e=>{e.preventDefault();const d=new FormData(e.currentTarget);if(await act('ADD',{cardId:manual.id,id:crypto.randomUUID(),seconds:(Number(d.get('hours'))*60+Number(d.get('minutes')))*60,note:d.get('note')}))setManual(undefined);}}><div className="two"><label>Horas<input name="hours" type="number" min="0" max="24" defaultValue={Math.floor((state.manualMinutes??15)/60)} required/></label><label>Minutos<input name="minutes" type="number" min="0" max="59" defaultValue={(state.manualMinutes??15)%60} required/></label></div><label>Nota opcional<input name="note" maxLength={200} placeholder="¿En qué trabajaste?"/></label><button className="primary wide" disabled={busy}>{busy?'Guardando…':'Sumar al registro'}</button></form>{error&&<p role="alert" className="error">{error}</p>}</section></div>}</div>;
+ {manual&&<dialog ref={dialogoManual} className="modal registro-manual" aria-labelledby="manual-title" onCancel={e=>{e.preventDefault();if(!busy)setManual(undefined);}}><button className="close" aria-label="Cerrar" onClick={()=>setManual(undefined)}>×</button><div className="eyebrow">REGISTRO MANUAL</div><h2 id="manual-title">Sumar tiempo</h2><p>{manual.name}</p><form onSubmit={async e=>{e.preventDefault();const d=new FormData(e.currentTarget);if(await act('ADD',{cardId:manual.id,id:crypto.randomUUID(),seconds:(Number(d.get('hours'))*60+Number(d.get('minutes')))*60,note:d.get('note')}))setManual(undefined);}}><div className="two"><label>Horas<input name="hours" type="number" min="0" max="24" defaultValue={Math.floor((state.manualMinutes??15)/60)} required/></label><label>Minutos<input name="minutes" type="number" min="0" max="59" defaultValue={(state.manualMinutes??15)%60} required/></label></div><label>Nota opcional<input name="note" maxLength={200} placeholder="¿En qué trabajaste?"/></label><button className="primary wide" disabled={busy}>{busy?'Guardando…':'Sumar al registro'}</button></form>{error&&<p role="alert" className="error">{error}</p>}</dialog>}</div>;
 }
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
