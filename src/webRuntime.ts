@@ -14,5 +14,16 @@ export async function webRequest(type:string,fields:object={}){
  return navigator.locks.request('trello-focus-web-state',()=>engine.dispatch({type,...fields}));
 }
 // Las fechas absolutas permiten recuperar la sesión tras suspender o cerrar la pestaña.
-setInterval(()=>{void navigator.locks?.request('trello-focus-web-state',()=>engine.tick()).catch(()=>{});},1000);
+let actualizacionPendiente = false;
+setInterval(async () => {
+  if (actualizacionPendiente || !navigator.locks) return;
+  actualizacionPendiente = true;
+  try {
+    await navigator.locks.request('trello-focus-web-state', () => engine.tick());
+  } catch {
+    // El siguiente intervalo vuelve a consultar el estado.
+  } finally {
+    actualizacionPendiente = false;
+  }
+}, 1000);
 window.addEventListener('storage',e=>{if(e.key?.startsWith(prefix))emit();});

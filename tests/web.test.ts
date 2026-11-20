@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'vite';
 test('Web independiente: credenciales aisladas, persistencia y cargas serializadas sin Chrome',async()=>{
- const memory=new Map<string,string>(),events=new EventTarget();let lock=Promise.resolve();const timers:Function[]=[];
+ const memory=new Map<string,string>(),events=new EventTarget();let lock=Promise.resolve();let solicitudes=0;const timers:Function[]=[];
  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(key:string)=>memory.get(key)??null,setItem:(key:string,value:string)=>memory.set(key,value),removeItem:(key:string)=>memory.delete(key)}});
- Object.defineProperty(globalThis,'navigator',{configurable:true,value:{locks:{request:(_name:string,fn:()=>unknown)=>{const pending=lock.then(fn);lock=pending.catch(()=>{});return pending;}}}});
+ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{locks:{request:(_name:string,fn:()=>unknown)=>{solicitudes++;const pending=lock.then(fn);lock=pending.catch(()=>{});return pending;}}}});
  Object.assign(globalThis,{window:events,location:{href:'https://prueba.example/'}});
  const originalInterval=globalThis.setInterval;
  (globalThis as any).setInterval=(fn:Function)=>{timers.push(fn);return 1;};
@@ -26,6 +26,14 @@ test('Web independiente: credenciales aisladas, persistencia y cargas serializad
   const url='data:text/javascript;base64,'+Buffer.from(result[0].output[0].code).toString('base64');
   const runtime=await import(url);
   assert.equal((globalThis as any).chrome,undefined);
+  let liberar!:()=>void;
+  lock=new Promise<void>(resolve=>{liberar=resolve;});
+  const antes=solicitudes;
+  for(let segundo=0;segundo<5;segundo++)timers[0]();
+  assert.equal(solicitudes-antes,1,'Un bloqueo prolongado admite un solo tick pendiente por pestaña.');
+  liberar();await lock;await new Promise(resolve=>setImmediate(resolve));
+  timers[0]();await lock;
+  assert.equal(solicitudes-antes,2,'El reloj vuelve a actualizarse después de liberar el bloqueo.');
   await runtime.webRequest('SETTINGS',{minutes:35,manualMinutes:45,notifications:false});
   await runtime.webRequest('CONNECT',{credentials:{key:'a'.repeat(32),token:'solo-prueba'}});
   await Promise.all([runtime.webRequest('ADD',{cardId,seconds:600,id:'uno'}),runtime.webRequest('ADD',{cardId,seconds:1800,id:'dos'})]);
